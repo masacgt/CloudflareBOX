@@ -16,18 +16,18 @@ if ([string]::IsNullOrWhiteSpace($InstallUserName)) {
 
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    $scriptPathLiteral = "'" + $PSCommandPath.Replace("'", "''") + "'"
+    $installRootLiteral = "'" + $InstallRoot.Replace("'", "''") + "'"
+    $installUserSidLiteral = "'" + $InstallUserSid.Replace("'", "''") + "'"
+    $installUserNameLiteral = "'" + $InstallUserName.Replace("'", "''") + "'"
+    $elevationCommand = '$script = [ScriptBlock]::Create((Get-Content -Raw -LiteralPath {0})); & $script -InstallRoot {1} -InstallUserSid {2} -InstallUserName {3}' -f $scriptPathLiteral, $installRootLiteral, $installUserSidLiteral, $installUserNameLiteral
+    $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($elevationCommand))
     $arguments = @(
         '-NoProfile'
         '-ExecutionPolicy'
         'Bypass'
-        '-File'
-        ('"{0}"' -f $PSCommandPath)
-        '-InstallRoot'
-        ('"{0}"' -f $InstallRoot)
-        '-InstallUserSid'
-        $InstallUserSid
-        '-InstallUserName'
-        ('"{0}"' -f $InstallUserName)
+        '-EncodedCommand'
+        $encodedCommand
     )
     $elevated = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -Wait -PassThru
     exit $elevated.ExitCode

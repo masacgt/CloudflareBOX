@@ -71,6 +71,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Validate installer entrypoint under Restricted policy
+        shell: cmd
+        run: |
+          > "%RUNNER_TEMP%\cloudflarebox-policy-test.ps1" echo Write-Output 'restricted-policy-ok'
+          set "CLOUDFLAREBOX_INSTALL_SCRIPT=%RUNNER_TEMP%\cloudflarebox-policy-test.ps1"
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "$script = [ScriptBlock]::Create((Get-Content -Raw -LiteralPath $env:CLOUDFLAREBOX_INSTALL_SCRIPT)); & $script"
       - name: Validate installer PowerShell syntax
         shell: pwsh
         working-directory: win11
