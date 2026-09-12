@@ -2,7 +2,7 @@
 setlocal
 set "CLOUDFLAREBOX_INSTALL_SCRIPT=%~dp0install.ps1"
 set "CLOUDFLAREBOX_INSTALLER_DIR=%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$script = [ScriptBlock]::Create((Get-Content -Raw -Encoding UTF8 -LiteralPath $env:CLOUDFLAREBOX_INSTALL_SCRIPT)); & $script"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$script = [ScriptBlock]::Create((Get-Content -Raw -Encoding UTF8 -LiteralPath $env:CLOUDFLAREBOX_INSTALL_SCRIPT)); & $script -InstallerRoot $env:CLOUDFLAREBOX_INSTALLER_DIR"
 set "exitcode=%ERRORLEVEL%"
 if not "%exitcode%"=="0" (
   echo.
