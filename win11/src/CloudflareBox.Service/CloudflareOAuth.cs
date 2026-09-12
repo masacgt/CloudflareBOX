@@ -12,7 +12,7 @@ internal static class CloudflareOAuth
     private const string TokenEndpoint = "https://dash.cloudflare.com/oauth2/token";
     private const string RevokeEndpoint = "https://dash.cloudflare.com/oauth2/revoke";
     private const string DefaultRedirect = "http://127.0.0.1:53682/oauth/callback/";
-    private const string DefaultScopes = "account.read workers-platform.write workers-r2.write d1.write";
+    private const string DefaultScopes = "account-settings.read workers-platform.write workers-r2.write d1.write";
 
     private sealed record TokenResponse(string access_token, string? refresh_token, int expires_in, string? scope, string? token_type);
 
