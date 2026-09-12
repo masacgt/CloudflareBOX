@@ -19,11 +19,11 @@ Cloudflare の現在の OAuth Client API で作成時に必要な値は次の6�
 - Redirect URI: `http://127.0.0.1:53682/oauth/callback/`
 - Scopes:
   - `account-settings.read`
-  - `workers-platform.write`
+  - `workers-scripts.write`
   - `workers-r2.write`
   - `d1.write`
 
-画面上の表示名はAPIのIDと異なります。Cloudflareダッシュボードでは、`account-settings.read` は「Account Settings Read」、`workers-platform.write` は「Workers」の最後にある小文字の「edit」、`workers-r2.write` は「Workers R2 Storage」の「Edit」、`d1.write` は「D1」の「Edit」に対応します。Workersの「Bind」や「Workers Editor」は今回の構成では選択しません。
+画面上の表示名はAPIのIDと異なります。Cloudflareダッシュボードでは、`account-settings.read` は「Account Settings Read」、`workers-scripts.write` は「Workers」の最後にある小文字の「edit」、`workers-r2.write` は「Workers R2 Storage」の「Edit」、`d1.write` は「D1」の「Edit」に対応します。Workersの「Bind」や「Workers Editor」は今回の構成では選択しません。
 
 API で作成する場合の内容は次の形です。
 
@@ -35,7 +35,7 @@ API で作成する場合の内容は次の形です。
   "response_types": ["code"],
   "scopes": [
     "account-settings.read",
-    "workers-platform.write",
+    "workers-scripts.write",
     "workers-r2.write",
     "d1.write"
   ],
@@ -64,7 +64,7 @@ Client の作成前に一覧取得を成功させておくと、誤った accoun
 
 `account-settings.read` は、OAuth で利用者が許可した Cloudflare アカウントの一覧取得と、複数アカウント利用者の構築先選択に使います。
 
-`workers-platform.write` は Worker script、workers.dev、Worker subdomain、cron の作成・更新・削除に使います。
+`workers-scripts.write` は Worker script、workers.dev、Worker subdomain、cron の作成・更新・削除に使います。
 
 `workers-r2.write` は CloudflareBOX installation 専用 R2 bucket の作成・確認・削除に使います。
 
