@@ -61,7 +61,7 @@ Cloudflare OAuth の Public Client を正式登録し、デスクトップ向け
 
 OAuth Client には少なくとも次の scope を登録します。
 
-- `account.read`: OAuth で許可された Cloudflare アカウントの取得と選択
+- `account-settings.read`: OAuth で許可された Cloudflare アカウントの取得と選択
 - `workers-platform.write`: Worker、workers.dev、cron の作成・更新・削除
 - `workers-r2.write`: installation 専用 R2 bucket の作成・確認・削除
 - `d1.write`: installation 専用 D1 の作成・schema 適用・確認・削除
