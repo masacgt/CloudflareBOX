@@ -87,10 +87,33 @@ if ([string]::IsNullOrWhiteSpace($oauthClientId)) {
 # Stop an earlier installation before replacing its loaded assemblies.
 $existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
 if ($existing -and $existing.Status -ne 'Stopped') {
-    Stop-Service -Name 'CloudflareBOX' -Force
+    try {
+        Stop-Service -Name 'CloudflareBOX' -Force -ErrorAction Stop
+    }
+    catch {
+        Write-Warning ("CloudflareBOX サービスの通常停止に失敗しました。プロセス終了を試みます: {0}" -f $_.Exception.Message)
+    }
+
+    $deadline = (Get-Date).AddSeconds(15)
+    do {
+        Start-Sleep -Milliseconds 500
+        $existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
+    } while ($existing -and $existing.Status -ne 'Stopped' -and (Get-Date) -lt $deadline)
+
+    if ($existing -and $existing.Status -ne 'Stopped') {
+        $serviceInfo = Get-CimInstance Win32_Service -Filter "Name='CloudflareBOX'" -ErrorAction SilentlyContinue
+        if ($serviceInfo -and $serviceInfo.ProcessId -gt 0) {
+            Stop-Process -Id $serviceInfo.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 Get-Process -Name 'CloudflareBox.Service', 'CloudflareBox.Tray' -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+$existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
+if ($existing -and $existing.Status -ne 'Stopped') {
+    throw 'CloudflareBOX サービスを停止できませんでした。PCを再起動してから、もう一度インストールしてください。'
+}
 if ($existing) {
     sc.exe delete CloudflareBOX | Out-Null
 }
