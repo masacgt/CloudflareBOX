@@ -20,7 +20,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     $installRootLiteral = "'" + $InstallRoot.Replace("'", "''") + "'"
     $installUserSidLiteral = "'" + $InstallUserSid.Replace("'", "''") + "'"
     $installUserNameLiteral = "'" + $InstallUserName.Replace("'", "''") + "'"
-    $elevationCommand = '$script = [ScriptBlock]::Create((Get-Content -Raw -LiteralPath {0})); & $script -InstallRoot {1} -InstallUserSid {2} -InstallUserName {3}' -f $scriptPathLiteral, $installRootLiteral, $installUserSidLiteral, $installUserNameLiteral
+    $elevationCommand = '$script = [ScriptBlock]::Create((Get-Content -Raw -Encoding UTF8 -LiteralPath {0})); & $script -InstallRoot {1} -InstallUserSid {2} -InstallUserName {3}' -f $scriptPathLiteral, $installRootLiteral, $installUserSidLiteral, $installUserNameLiteral
     $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($elevationCommand))
     $arguments = @(
         '-NoProfile'
