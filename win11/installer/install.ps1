@@ -6,6 +6,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# When this script is loaded through ScriptBlock::Create (the CMD entrypoint),
+# PowerShell does not populate $PSScriptRoot. The CMD entrypoint supplies the
+# package directory through CLOUDFLAREBOX_INSTALLER_DIR instead.
+$installerRoot = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($installerRoot)) {
+    $installerRoot = $env:CLOUDFLAREBOX_INSTALLER_DIR
+}
+if ([string]::IsNullOrWhiteSpace($installerRoot)) {
+    throw 'インストーラーの配置場所を確認できません。Install-CloudflareBOX.cmd から実行してください。'
+}
+
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 if ([string]::IsNullOrWhiteSpace($InstallUserSid)) {
     $InstallUserSid = $currentIdentity.User.Value
@@ -40,10 +51,10 @@ catch {
     throw "インストール元ユーザーの SID を確認できません: $InstallUserSid"
 }
 
-$serviceSource = Join-Path $PSScriptRoot 'service'
-$traySource = Join-Path $PSScriptRoot 'tray'
-$workerSource = Join-Path $PSScriptRoot 'worker'
-$oauthClientFile = Join-Path $PSScriptRoot 'oauth-client-id.txt'
+$serviceSource = Join-Path $installerRoot 'service'
+$traySource = Join-Path $installerRoot 'tray'
+$workerSource = Join-Path $installerRoot 'worker'
+$oauthClientFile = Join-Path $installerRoot 'oauth-client-id.txt'
 if (-not (Test-Path $serviceSource) -or -not (Test-Path $traySource) -or -not (Test-Path (Join-Path $workerSource 'cloudflarebox-worker.mjs'))) {
     throw 'install.ps1 と同じフォルダに service、tray、worker/cloudflarebox-worker.mjs が必要です。'
 }
