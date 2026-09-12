@@ -1,13 +1,43 @@
 param(
-    [string]$InstallRoot = (Join-Path $env:ProgramFiles 'CloudflareBOX')
+    [string]$InstallRoot = (Join-Path $env:ProgramFiles 'CloudflareBOX'),
+    [string]$InstallUserSid = '',
+    [string]$InstallUserName = ''
 )
 
 $ErrorActionPreference = 'Stop'
-$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+
+$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+if ([string]::IsNullOrWhiteSpace($InstallUserSid)) {
+    $InstallUserSid = $currentIdentity.User.Value
+}
+if ([string]::IsNullOrWhiteSpace($InstallUserName)) {
+    $InstallUserName = $currentIdentity.Name
+}
+
+$principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -InstallRoot `"$InstallRoot`""
+    $arguments = @(
+        '-NoProfile'
+        '-ExecutionPolicy'
+        'Bypass'
+        '-File'
+        ('"{0}"' -f $PSCommandPath)
+        '-InstallRoot'
+        ('"{0}"' -f $InstallRoot)
+        '-InstallUserSid'
+        $InstallUserSid
+        '-InstallUserName'
+        ('"{0}"' -f $InstallUserName)
+    )
     $elevated = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -Wait -PassThru
     exit $elevated.ExitCode
+}
+
+try {
+    $installSid = [Security.Principal.SecurityIdentifier]::new($InstallUserSid)
+}
+catch {
+    throw "インストール元ユーザーの SID を確認できません: $InstallUserSid"
 }
 
 $serviceSource = Join-Path $PSScriptRoot 'service'
@@ -43,17 +73,21 @@ if (-not (Test-Path $serviceExe) -or -not (Test-Path $trayExe)) {
 
 $dataRoot = Join-Path $env:ProgramData 'CloudflareBOX'
 New-Item -ItemType Directory -Force $dataRoot | Out-Null
-$currentUserSid = [Security.Principal.WindowsIdentity]::GetCurrent().User
+
+# DPAPI(LocalMachine) のファイルを同じ PC の別ユーザーから読めないよう、
+# ProgramData の親フォルダから継承された ACL を外して対象 principal だけを許可する。
+$systemSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-18')
+$administratorsSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
 $inheritance = [Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [Security.AccessControl.InheritanceFlags]::ObjectInherit
-$rule = [Security.AccessControl.FileSystemAccessRule]::new(
-    $currentUserSid,
-    [Security.AccessControl.FileSystemRights]::Modify,
-    $inheritance,
-    [Security.AccessControl.PropagationFlags]::None,
-    [Security.AccessControl.AccessControlType]::Allow
-)
-$acl = Get-Acl $dataRoot
-$acl.SetAccessRule($rule)
+$propagation = [Security.AccessControl.PropagationFlags]::None
+$fullControl = [Security.AccessControl.FileSystemRights]::FullControl
+$modify = [Security.AccessControl.FileSystemRights]::Modify
+$allow = [Security.AccessControl.AccessControlType]::Allow
+$acl = New-Object System.Security.AccessControl.DirectorySecurity
+$acl.SetAccessRuleProtection($true, $false)
+$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($systemSid, $fullControl, $inheritance, $propagation, $allow))
+$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($administratorsSid, $fullControl, $inheritance, $propagation, $allow))
+$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($installSid, $modify, $inheritance, $propagation, $allow))
 Set-Acl -Path $dataRoot -AclObject $acl
 
 $existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
@@ -67,8 +101,15 @@ New-Service -Name 'CloudflareBOX' -BinaryPathName ('"{0}" --service' -f $service
 sc.exe failure CloudflareBOX reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
 
 $taskCommand = '"{0}"' -f $trayExe
-schtasks.exe /Create /TN 'CloudflareBOX-Tray' /SC ONLOGON /TR $taskCommand /RL LIMITED /F | Out-Null
+schtasks.exe /Create /TN 'CloudflareBOX-Tray' /SC ONLOGON /TR $taskCommand /RU $InstallUserName /IT /RL LIMITED /F | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw "CloudflareBOX タスクトレイの登録に失敗しました: $InstallUserName"
+}
 
 Start-Service -Name 'CloudflareBOX'
-Start-Process $trayExe
+schtasks.exe /Run /TN 'CloudflareBOX-Tray' | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Start-Process $trayExe
+}
+
 Write-Host 'CloudflareBOX をインストールしました。タスクトレイの「Cloudflareと連携」を押し、Cloudflareへログインしてください。R2・D1・Workerは連携後に自動構築されます。'
