@@ -3,9 +3,6 @@ export interface Env {
   FILES: R2Bucket;
   APP_VERSION: string;
   R2_BUCKET_NAME: string;
-  R2_ACCOUNT_ID: string;
-  R2_ACCESS_KEY_ID: string;
-  R2_SECRET_ACCESS_KEY: string;
   PAIRING_SETUP_TOKEN: string;
   FREE_STORAGE_GB_MONTH: string;
   FREE_CLASS_A: string;
