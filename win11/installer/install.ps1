@@ -109,7 +109,7 @@ if ($LASTEXITCODE -ne 0) {
 Start-Service -Name 'CloudflareBOX'
 schtasks.exe /Run /TN 'CloudflareBOX-Tray' | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Start-Process $trayExe
+    Write-Warning 'CloudflareBOX のトレイ起動は次回のユーザーログオン時に行われます。管理者権限のプロセスからは起動しません。'
 }
 
 Write-Host 'CloudflareBOX をインストールしました。タスクトレイの「Cloudflareと連携」を押し、Cloudflareへログインしてください。R2・D1・Workerは連携後に自動構築されます。'
