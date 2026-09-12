@@ -16,7 +16,7 @@
 
 配布 ZIP の Service と Tray は `win-x64 --self-contained true` で publish されるため、利用者が .NET Runtime を別途入れる必要はありません。
 
-Windows service はインストール直後から自動起動し、Cloudflare 未連携の間は待機します。複数アカウント選択が必要な場合、OAuth token、Windows 鍵、保存先、Worker bundle path を `ProgramData\CloudflareBOX` に保持し、`account_selection_required` 状態で待機します。利用者が Tray でアカウントを選ぶと、再ログインせず `--complete-cloudflare <account-id>` で構築を続行します。
+Windows service はインストール直後から自動起動し、Cloudflare 未連携の間は待機します。複数アカウント選択が必要な場合、OAuth token、Windows 鍵、保存先、Worker bundle path を `ProgramData\\CloudflareBOX` に保持し、`account_selection_required` 状態で待機します。利用者が Tray でアカウントを選ぶと、再ログインせず `--complete-cloudflare <account-id>` で構築を続行します。
 
 ## Cloudflare OAuth
 
@@ -31,7 +31,7 @@ Windows service はインストール直後から自動起動し、Cloudflare �
 
 `account.read` は OAuth で許可された Cloudflare アカウント一覧を取得し、複数アカウント利用者に構築先を選ばせるために使います。残り3つは CloudflareBOX 専用 Worker/R2/D1 の構築・修復・削除に使います。
 
-OAuth token は Windows DPAPI の LocalMachine 保護で `ProgramData\CloudflareBOX\cloudflare.oauth.dpapi` に保存します。復旧 bundle には含めません。
+OAuth token は Windows DPAPI の LocalMachine 保護で `ProgramData\\CloudflareBOX\\cloudflare.oauth.dpapi` に保存します。復旧 bundle には含めません。
 
 ## Cloudflare 自動構築
 
@@ -72,7 +72,7 @@ Windows package の assemble step では少なくとも次を確認してから 
 - `Install-CloudflareBOX.cmd`
 - `START-HERE.txt`
 
-repository variable が設定されている場合は `oauth-client-id.txt` も同梱します。未設定でも CI 自体は成功できますが、その ZIP では一般利用者が Cloudflare OAuth 連携を完了できないため公開配布には使用しません。
+repository variable `CLOUDFLAREBOX_OAUTH_CLIENT_ID` は Windows 配布物の必須条件です。未設定または空の場合、`windows-package` は `Validate distribution OAuth client` で失敗し、配布 ZIP を生成しません。設定済みの場合は `oauth-client-id.txt` を必須ファイルとして同梱し、空でないことを確認してから ZIP を作成します。
 
 ## 開発用の手動経路
 

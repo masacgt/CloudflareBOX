@@ -40,7 +40,7 @@ GitHub Actions の `cloudflarebox-windows` artifact には、次を含む `Cloud
 - `uninstall.ps1`: 管理者 PowerShell から実行するアンインストール処理
 - `Install-CloudflareBOX.cmd`: 利用者向けの通常インストール入口
 - `START-HERE.txt`: 配布 ZIP 内の導入案内
-- `oauth-client-id.txt`: `CLOUDFLAREBOX_OAUTH_CLIENT_ID` が設定されている場合だけ同梱
+- `oauth-client-id.txt`: `CLOUDFLAREBOX_OAUTH_CLIENT_ID` から生成する配布必須ファイル
 
 CI では Service/Tray の実行ファイルと `coreclr.dll`、Worker bundle、各 installer ファイルの存在を確認してから ZIP を生成します。
 
