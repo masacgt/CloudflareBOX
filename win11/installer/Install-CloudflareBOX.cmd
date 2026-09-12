@@ -1,6 +1,7 @@
 @echo off
 setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1"
+set "CLOUDFLAREBOX_INSTALL_SCRIPT=%~dp0install.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$script = [ScriptBlock]::Create((Get-Content -Raw -LiteralPath $env:CLOUDFLAREBOX_INSTALL_SCRIPT)); & $script"
 set "exitcode=%ERRORLEVEL%"
 if not "%exitcode%"=="0" (
   echo.
