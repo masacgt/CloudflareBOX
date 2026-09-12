@@ -16,4 +16,7 @@ if not "%exitcode%"=="0" (
   )
   pause
 )
+if "%exitcode%"=="0" (
+  schtasks.exe /Run /TN CloudflareBOX-Tray >nul 2>&1
+)
 exit /b %exitcode%
