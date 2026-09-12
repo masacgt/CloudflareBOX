@@ -1,15 +1,18 @@
 param(
     [string]$InstallRoot = (Join-Path $env:ProgramFiles 'CloudflareBOX'),
     [string]$InstallUserSid = '',
-    [string]$InstallUserName = ''
+    [string]$InstallUserName = '',
+    [string]$InstallerRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
 
-# When this script is loaded through ScriptBlock::Create (the CMD entrypoint),
-# PowerShell does not populate $PSScriptRoot. The CMD entrypoint supplies the
-# package directory through CLOUDFLAREBOX_INSTALLER_DIR instead.
-$installerRoot = $PSScriptRoot
+# ScriptBlock::Create does not reliably populate the automatic script path variables.
+# Prefer the explicit path passed by the CMD entrypoint, then support direct .ps1 use.
+$installerRoot = $InstallerRoot
+if ([string]::IsNullOrWhiteSpace($installerRoot)) {
+    $installerRoot = $PSScriptRoot
+}
 if ([string]::IsNullOrWhiteSpace($installerRoot)) {
     $installerRoot = $env:CLOUDFLAREBOX_INSTALLER_DIR
 }
@@ -27,11 +30,19 @@ if ([string]::IsNullOrWhiteSpace($InstallUserName)) {
 
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $scriptPathLiteral = "'" + $PSCommandPath.Replace("'", "''") + "'"
+    $scriptPath = $env:CLOUDFLAREBOX_INSTALL_SCRIPT
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        $scriptPath = $PSCommandPath
+    }
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        throw 'install.ps1 の場所を確認できません。Install-CloudflareBOX.cmd から実行してください。'
+    }
+    $scriptPathLiteral = "'" + $scriptPath.Replace("'", "''") + "'"
     $installRootLiteral = "'" + $InstallRoot.Replace("'", "''") + "'"
     $installUserSidLiteral = "'" + $InstallUserSid.Replace("'", "''") + "'"
     $installUserNameLiteral = "'" + $InstallUserName.Replace("'", "''") + "'"
-    $elevationCommand = '$script = [ScriptBlock]::Create((Get-Content -Raw -Encoding UTF8 -LiteralPath {0})); & $script -InstallRoot {1} -InstallUserSid {2} -InstallUserName {3}' -f $scriptPathLiteral, $installRootLiteral, $installUserSidLiteral, $installUserNameLiteral
+    $installerRootLiteral = "'" + $installerRoot.Replace("'", "''") + "'"
+    $elevationCommand = '$script = [ScriptBlock]::Create((Get-Content -Raw -Encoding UTF8 -LiteralPath {0})); & $script -InstallRoot {1} -InstallUserSid {2} -InstallUserName {3} -InstallerRoot {4}' -f $scriptPathLiteral, $installRootLiteral, $installUserSidLiteral, $installUserNameLiteral, $installerRootLiteral
     $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($elevationCommand))
     $arguments = @(
         '-NoProfile'
