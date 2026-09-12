@@ -7,6 +7,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$installLogPath = $env:CLOUDFLAREBOX_INSTALL_LOG
+if ([string]::IsNullOrWhiteSpace($installLogPath)) {
+    $installLogPath = Join-Path $env:TEMP 'CloudflareBOX-install-error.log'
+}
+
+try {
+
 # ScriptBlock::Create does not reliably populate the automatic script path variables.
 # Prefer the explicit path passed by the CMD entrypoint, then support direct .ps1 use.
 $installerRoot = $InstallerRoot
@@ -135,3 +142,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host 'CloudflareBOX をインストールしました。タスクトレイの「Cloudflareと連携」を押し、Cloudflareへログインしてください。R2・D1・Workerは連携後に自動構築されます。'
+
+}
+catch {
+    $_ | Out-String | Set-Content -LiteralPath $installLogPath -Encoding UTF8
+    throw
+}
