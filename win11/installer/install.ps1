@@ -84,6 +84,18 @@ if ([string]::IsNullOrWhiteSpace($oauthClientId)) {
     throw '配布物が不完全です。oauth-client-id.txt が空です。CloudflareBOX の正式な Windows 配布 ZIP を使用してください。'
 }
 
+# Stop an earlier installation before replacing its loaded assemblies.
+$existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
+if ($existing -and $existing.Status -ne 'Stopped') {
+    Stop-Service -Name 'CloudflareBOX' -Force
+}
+Get-Process -Name 'CloudflareBox.Service', 'CloudflareBox.Tray' -ErrorAction SilentlyContinue |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+if ($existing) {
+    sc.exe delete CloudflareBOX | Out-Null
+}
+Start-Sleep -Milliseconds 500
+
 $serviceTarget = Join-Path $InstallRoot 'service'
 $trayTarget = Join-Path $InstallRoot 'tray'
 $workerTarget = Join-Path $serviceTarget 'worker'
@@ -119,12 +131,6 @@ $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($administr
 $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($installSid, $modify, $inheritance, $propagation, $allow))
 Set-Acl -Path $dataRoot -AclObject $acl
 
-$existing = Get-Service -Name 'CloudflareBOX' -ErrorAction SilentlyContinue
-if ($existing) {
-    if ($existing.Status -ne 'Stopped') { Stop-Service -Name 'CloudflareBOX' -Force }
-    sc.exe delete CloudflareBOX | Out-Null
-    Start-Sleep -Milliseconds 500
-}
 
 New-Service -Name 'CloudflareBOX' -BinaryPathName ('"{0}" --service' -f $serviceExe) -DisplayName 'CloudflareBOX Receiver' -Description 'Receives encrypted CloudflareBOX files through the user owned Cloudflare Worker and R2.' -StartupType Automatic | Out-Null
 sc.exe failure CloudflareBOX reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
