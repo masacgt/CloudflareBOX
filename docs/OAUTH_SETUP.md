@@ -45,6 +45,19 @@ PKCE S256 は Windows アプリ側が Authorization Code フロー開始時に�
 
 `refresh_token` grant を有効にすると、Cloudflare 側が protocol scope の `offline_access` を client 設定へ自動的に反映します。CloudflareBOX は refresh token が返された場合に Windows DPAPI で保存し、access token の有効期限が近づくと自動更新します。
 
+## OAuth Client 管理 API の権限と復旧
+
+この節の API token は CloudflareBOX の配布者が OAuth Client を作成・更新するときだけ使います。通常利用者の Windows/Android には配布せず、Client Secret と同様にアプリや GitHub の公開ファイルへ入れません。
+
+Cloudflare API で OAuth Client を管理する場合は、少なくとも次の API token permission が必要です。
+
+- 一覧・詳細確認: `OAuth Client Read`
+- 作成・更新・公開昇格・削除: `OAuth Client Write`
+
+`GET /accounts/{account_id}/oauth_clients` で `10000: Authentication error` になる場合は、対象アカウントが違う、token が無効、または `OAuth Client Read` / `OAuth Client Write` が不足している状態を疑います。まず対象 account を確認し、OAuth Client 管理権限を付けた API token で一覧取得を再試行します。
+
+Client の作成前に一覧取得を成功させておくと、誤った account へ重複作成する事故を避けやすくなります。既存の CloudflareBOX Client が見つかった場合は、その Client ID と設定を確認して更新・公開昇格を行い、同名 Client を増やしません。
+
 ## Scope の用途
 
 `account.read` は、OAuth で利用者が許可した Cloudflare アカウントの一覧取得と、複数アカウント利用者の構築先選択に使います。
