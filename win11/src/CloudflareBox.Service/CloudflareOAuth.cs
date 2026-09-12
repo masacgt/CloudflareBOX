@@ -53,7 +53,12 @@ internal static class CloudflareOAuth
         context.Response.Close();
 
         if (!string.Equals(query["state"], state, StringComparison.Ordinal)) throw new InvalidOperationException("OAuth state mismatch.");
-        if (query["error"] is string error) throw new InvalidOperationException($"Cloudflare authorization failed: {error}");
+        if (query["error"] is string error)
+        {
+            var description = query["error_description"];
+            var detail = string.IsNullOrWhiteSpace(description) ? error : $"{error}: {description}";
+            throw new InvalidOperationException($"Cloudflare authorization failed: {detail} Requested scopes: {scopes}");
+        }
         var code = query["code"] ?? throw new InvalidOperationException("Cloudflare did not return an authorization code.");
         var token = await ExchangeAsync(new Dictionary<string, string>
         {
