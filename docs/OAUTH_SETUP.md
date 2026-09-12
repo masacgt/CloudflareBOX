@@ -66,7 +66,7 @@ PKCE S256 は Windows アプリ側が Authorization Code フロー開始時に�
 
 Cloudflare の OAuth Client API では、client URI のドメイン所有確認状態として `client_uri_verification` が返り、必要な場合は DNS TXT レコードの値が提示されます。所有していないドメインは設定しません。
 
-API の作成要求では `visibility` を指定できず、レスポンス側の読み取り専用項目です。Public への公開は Cloudflare の publisher 公開手続きで行い、公開後は `visibility=public` と `promoted_at` を確認します。
+OAuth Client の作成要求では `visibility` を指定しません。Client name、logo URI、所有確認済みの client URI host、少なくとも1つの非identity scope を満たした後、既存 Client に `PATCH /accounts/{account_id}/oauth_clients/{oauth_client_id}` で `{"visibility":"public"}` を送ると Public へ昇格できます。公開後は `visibility=public` と `promoted_at` を確認します。Private への降格はサポートされません。
 
 公開前に redirect URI、scope、表示名、ロゴ、利用規約、プライバシーポリシー、publisher domain の所有確認を最終確認します。
 
