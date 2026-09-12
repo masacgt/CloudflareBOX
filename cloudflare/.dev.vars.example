@@ -1,0 +1,3 @@
+# Worker secret used only for local Worker development.
+# Production setup injects this automatically during Cloudflare provisioning.
+PAIRING_SETUP_TOKEN=replace-with-long-random-setup-token
