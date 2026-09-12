@@ -1,0 +1,99 @@
+name: CloudflareBOX CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloudflare/package.json
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:bundle
+      - run: npx wrangler deploy --dry-run --outdir dry-run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflarebox-worker
+          path: cloudflare/dist/cloudflarebox-worker.mjs
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore .\CloudflareBox.slnx
+        working-directory: win11
+      - run: dotnet build .\CloudflareBox.slnx --configuration Release --no-restore
+        working-directory: win11
+      - run: dotnet run --project .\tests\CloudflareBox.Core.Tests\CloudflareBox.Core.Tests.csproj --configuration Release
+        working-directory: win11
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew
+        working-directory: android
+      - run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflarebox-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  windows-package:
+    needs: [worker, windows, android]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore .\CloudflareBox.slnx
+        working-directory: win11
+      - run: dotnet publish .\src\CloudflareBox.Service\CloudflareBox.Service.csproj --configuration Release --no-restore --output .\package\service
+        working-directory: win11
+      - run: dotnet publish .\src\CloudflareBox.Tray\CloudflareBox.Tray.csproj --configuration Release --no-restore --output .\package\tray
+        working-directory: win11
+      - uses: actions/download-artifact@v4
+        with:
+          name: cloudflarebox-worker
+          path: win11/package/worker
+      - name: Assemble Windows package
+        shell: pwsh
+        env:
+          OAUTH_CLIENT_ID: ${{ vars.CLOUDFLAREBOX_OAUTH_CLIENT_ID }}
+        run: |
+          Copy-Item .\installer\install.ps1 .\package\install.ps1 -Force
+          Copy-Item .\installer\uninstall.ps1 .\package\uninstall.ps1 -Force
+          if (-not [string]::IsNullOrWhiteSpace($env:OAUTH_CLIENT_ID)) {
+            Set-Content -Path .\package\oauth-client-id.txt -Value $env:OAUTH_CLIENT_ID -NoNewline -Encoding utf8
+          }
+          Compress-Archive -Path .\package\* -DestinationPath .\CloudflareBOX-Windows.zip -Force
+        working-directory: win11
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cloudflarebox-windows
+          path: win11/CloudflareBOX-Windows.zip
