@@ -1,0 +1,57 @@
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+.dev.vars
+**/.dev.vars
+!**/.dev.vars.example
+local.properties
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Build and dependency output
+**/build/
+**/bin/
+**/obj/
+**/.gradle/
+**/.kotlin/
+**/.wrangler/
+**/node_modules/
+.gradle-home/
+.android-home/
+.dotnet-home/
+gradle-project-cache*/
+wrangler-home/
+android-build/
+cloudflare-build/
+cloudflare-dryrun*/
+cloudflare-verify-*/
+dist/
+win11/local-appdata/
+
+# IDE and user-specific files
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Backups and temporary verification files
+win11/backups/
+*.bak
+*.bak*
+*.original
+*.partial
+*.newline-backup
+*.before-*
+*.bad-backtick
+*.tmp
+root-write-test.txt
+**/write-test.txt
+**/probe.txt
+**/another-test.txt
+
+# OS files
+.DS_Store
+Thumbs.db

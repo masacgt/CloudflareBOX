@@ -1,0 +1,11 @@
+namespace CloudflareBox.Tray;
+
+internal static class Program
+{
+    [STAThread]
+    private static void Main()
+    {
+        ApplicationConfiguration.Initialize();
+        Application.Run(new StatusForm());
+    }
+}

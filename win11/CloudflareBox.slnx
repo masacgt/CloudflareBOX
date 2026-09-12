@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CloudflareBox.Core/CloudflareBox.Core.csproj" />
+    <Project Path="src/CloudflareBox.Service/CloudflareBox.Service.csproj" />
+    <Project Path="src/CloudflareBox.Tray/CloudflareBox.Tray.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CloudflareBox.Core.Tests/CloudflareBox.Core.Tests.csproj" />
+  </Folder>
+</Solution>
