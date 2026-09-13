@@ -14,6 +14,7 @@ class ApiClient(private val config: PairingConfig) {
     suspend fun status(): JSONObject = signedJson("GET", "status", null)
     suspend fun createTransfer(body: JSONObject): JSONObject = signedJson("POST", "transfers", body)
     suspend fun completeUpload(transferId: String): JSONObject = signedJson("POST", "transfers/$transferId/complete-upload", JSONObject())
+    suspend fun transferStatus(transferId: String): JSONObject = signedJson("GET", "transfers/$transferId/status", null)
     suspend fun cancel(transferId: String): JSONObject = signedJson("POST", "transfers/$transferId/cancel", JSONObject())
 
     suspend fun uploadPart(transferId: String, partNumber: Int, file: File, encryptedSha256: String): JSONObject = withContext(Dispatchers.IO) {
