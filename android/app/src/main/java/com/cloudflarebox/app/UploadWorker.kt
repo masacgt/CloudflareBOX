@@ -12,7 +12,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
+import android.os.ParcelFileDescriptor
 import java.io.FileInputStream
+import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -71,7 +73,7 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         db.setState(item.id, "PREPARING")
         val digest = MessageDigest.getInstance("SHA-256")
         openSource(item.source).use { input ->
-            val buffer = ByteArray(1024 * 1024)
+            val buffer = ByteArray(256 * 1024)
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) break
@@ -145,10 +147,9 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         target.outputStream().buffered(1024 * 1024).use { output ->
             output.write(byteArrayOf(1))
             output.write(nonce)
-            openSource(source).use { input ->
-                skipFully(input, offset)
+            openSourceAt(source, offset).use { input ->
                 var remaining = length
-                val buffer = ByteArray(1024 * 1024)
+                val buffer = ByteArray(256 * 1024)
                 while (remaining > 0) {
                     val read = input.read(buffer, 0, min(buffer.size.toLong(), remaining).toInt())
                     if (read < 0) throw java.io.EOFException("source ended early")
@@ -168,6 +169,25 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
         FileInputStream(File(source.removePrefix("file://")))
     }
 
+    private fun openSourceAt(source: String, offset: Long): InputStream {
+        if (offset <= 0L) return openSource(source)
+        if (!source.startsWith("content://")) {
+            return FileInputStream(File(source.removePrefix("file://"))).also { it.channel.position(offset) }
+        }
+        val uri = android.net.Uri.parse(source)
+        val descriptor = applicationContext.contentResolver.openFileDescriptor(uri, "r")
+        if (descriptor != null) {
+            try {
+                val stream = ParcelFileDescriptor.AutoCloseInputStream(descriptor)
+                stream.channel.position(offset)
+                return stream
+            } catch (_: IOException) {
+                descriptor.close()
+            }
+        }
+        return openSource(source).also { skipFully(it, offset) }
+    }
+
     private fun skipFully(input: InputStream, bytes: Long) {
         var remaining = bytes
         val scratch = ByteArray(64 * 1024)
@@ -185,8 +205,8 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
 
     private fun hashFile(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().buffered(1024 * 1024).use { input ->
-            val buffer = ByteArray(1024 * 1024)
+        file.inputStream().buffered(256 * 1024).use { input ->
+            val buffer = ByteArray(256 * 1024)
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) break
