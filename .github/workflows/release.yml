@@ -1,0 +1,192 @@
+name: CFBox Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag
+        required: true
+        default: v0.1.4
+
+permissions:
+  contents: write
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloudflare/package.json
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-worker-release
+          path: cloudflare/dist/cloudflarebox-worker.mjs
+
+  android:
+    needs: worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Check Android signing secrets
+        shell: bash
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=()
+          [[ -z "$KEYSTORE" ]] && missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -z "$STORE_PASSWORD" ]] && missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -z "$KEY_ALIAS" ]] && missing+=(ANDROID_KEY_ALIAS)
+          [[ -z "$KEY_PASSWORD" ]] && missing+=(ANDROID_KEY_PASSWORD)
+          if (( ${#missing[@]} > 0 )); then
+            echo "Missing Android signing secrets: ${missing[*]}"
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Decode Android keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/release.keystore
+      - name: Build signed Release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --no-configuration-cache \
+            -PCFBOX_RELEASE_STORE_FILE=release.keystore \
+            -PCFBOX_RELEASE_STORE_PASSWORD="$STORE_PASSWORD" \
+            -PCFBOX_RELEASE_KEY_ALIAS="$KEY_ALIAS" \
+            -PCFBOX_RELEASE_KEY_PASSWORD="$KEY_PASSWORD"
+      - name: Rename Release APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk CFBox-Android-${{ inputs.release_tag }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-android-release
+          path: CFBox-Android-${{ inputs.release_tag }}.apk
+
+  windows:
+    needs: worker
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Check distribution settings and signing secrets
+        shell: pwsh
+        env:
+          OAUTH_CLIENT_ID: ${{ vars.CLOUDFLAREBOX_OAUTH_CLIENT_ID }}
+          PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:OAUTH_CLIENT_ID)) { throw 'Repository variable CLOUDFLAREBOX_OAUTH_CLIENT_ID is required.' }
+          if ([string]::IsNullOrWhiteSpace($env:PFX_BASE64)) { throw 'Secret WINDOWS_SIGNING_PFX_BASE64 is required.' }
+          if ([string]::IsNullOrWhiteSpace($env:PFX_PASSWORD)) { throw 'Secret WINDOWS_SIGNING_PFX_PASSWORD is required.' }
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: cfbox-worker-release
+          path: win11/package/worker
+      - name: Publish Windows applications
+        run: |
+          dotnet publish .\src\CloudflareBox.Service\CloudflareBox.Service.csproj --configuration Release --runtime win-x64 --self-contained true --output .\package\service
+          dotnet publish .\src\CloudflareBox.Tray\CloudflareBox.Tray.csproj --configuration Release --runtime win-x64 --self-contained true --output .\package\tray
+        working-directory: win11
+      - name: Sign Windows binaries
+        shell: pwsh
+        working-directory: win11
+        env:
+          PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'cfbox-signing.pfx'
+          [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+          $signtool = Get-ChildItem "$env:ProgramFiles(x86)\Windows Kits\10\bin" -Filter signtool.exe -Recurse -ErrorAction Stop | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
+          $files = Get-ChildItem .\package -Recurse -File | Where-Object { $_.Extension -in @('.exe', '.dll') }
+          if ($files.Count -eq 0) { throw 'No Windows binaries were found to sign.' }
+          foreach ($file in $files) {
+            & $signtool sign /fd SHA256 /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $file.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Signing failed: $($file.FullName)" }
+          }
+      - name: Assemble Windows package
+        shell: pwsh
+        working-directory: win11
+        env:
+          OAUTH_CLIENT_ID: ${{ vars.CLOUDFLAREBOX_OAUTH_CLIENT_ID }}
+        run: |
+          Copy-Item .\installer\install.ps1 .\package\install.ps1 -Force
+          Copy-Item .\installer\uninstall.ps1 .\package\uninstall.ps1 -Force
+          Copy-Item .\installer\Install-CloudflareBOX.cmd .\package\Install-CloudflareBOX.cmd -Force
+          Copy-Item .\installer\START-HERE.txt .\package\START-HERE.txt -Force
+          Set-Content -Path .\package\oauth-client-id.txt -Value $env:OAUTH_CLIENT_ID -NoNewline -Encoding utf8
+          $required = @('.\package\service\CloudflareBox.Service.exe', '.\package\tray\CloudflareBox.Tray.exe', '.\package\worker\cloudflarebox-worker.mjs', '.\package\install.ps1', '.\package\uninstall.ps1', '.\package\Install-CloudflareBOX.cmd', '.\package\START-HERE.txt', '.\package\oauth-client-id.txt')
+          foreach ($path in $required) { if (-not (Test-Path $path)) { throw "Missing Windows package item: $path" } }
+          Compress-Archive -Path .\package\* -DestinationPath .\CFBox-Windows-${{ inputs.release_tag }}.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-windows-release
+          path: win11/CFBox-Windows-${{ inputs.release_tag }}.zip
+
+  release:
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cfbox-android-release
+          path: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: cfbox-windows-release
+          path: release
+      - name: Create checksums and release notes
+        working-directory: release
+        run: |
+          sha256sum CFBox-Android-${{ inputs.release_tag }}.apk CFBox-Windows-${{ inputs.release_tag }}.zip > SHA256SUMS.txt
+          cat > RELEASE_NOTES.md <<'EOF'
+          ## CFBox ${{ inputs.release_tag }}
+
+          - Android: Release署名済みAPK
+          - Windows 11: PFXコード署名済みZIP
+          - SHA-256: `SHA256SUMS.txt`を確認してください
+          - CloudflareのR2・D1・Workerは利用者自身のアカウントに構築されます
+
+          このReleaseはmainの配布版です。自分用の固定版`personal-v0.5`は変更していません。
+          EOF
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        working-directory: release
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt --clobber
+          else
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "CFBox $RELEASE_TAG" --notes-file RELEASE_NOTES.md CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt
+          fi
