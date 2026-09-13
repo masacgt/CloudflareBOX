@@ -50,7 +50,7 @@ internal static class PairingQrDialog
                 if (result.ExitCode == 0)
                 {
                     status.Text = "ペアリングが完了しました。";
-                    MessageBox.Show(form, "Android端末を承認しました。", "CloudflareBOX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(form, "Android端末を承認しました。", "CFBox", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     form.DialogResult = DialogResult.OK;
                     form.Close();
                 }
@@ -72,7 +72,7 @@ internal static class PairingQrDialog
     {
         var start = new ProcessStartInfo(serviceExe) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
         foreach (var arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("CloudflareBOX サービス操作を開始できませんでした。");
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("CFBox サービス操作を開始できませんでした。");
         var stdoutTask = process.StandardOutput.ReadToEndAsync();
         var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
