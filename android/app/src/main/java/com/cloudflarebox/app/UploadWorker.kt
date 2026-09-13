@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.BatteryManager
+import android.os.Build
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -13,6 +14,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import android.os.ParcelFileDescriptor
+import android.content.pm.ServiceInfo
 import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -228,7 +230,12 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
             .setOngoing(progress < 100)
             .setProgress(100, progress.coerceIn(0, 100), false)
             .build()
-        return ForegroundInfo(queueId.coerceIn(1, Int.MAX_VALUE.toLong()).toInt(), notification)
+        val notificationId = queueId.coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            ForegroundInfo(notificationId, notification)
+        }
     }
 
     private class PausedException : RuntimeException()
