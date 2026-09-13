@@ -222,9 +222,9 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
     private fun createForegroundInfo(progress: Int): ForegroundInfo {
         val manager = applicationContext.getSystemService(NotificationManager::class.java)
         val channelId = "cloudflarebox-transfer"
-        manager.createNotificationChannel(NotificationChannel(channelId, "CloudflareBOX 転送", NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(NotificationChannel(channelId, "CFBox 転送", NotificationManager.IMPORTANCE_LOW))
         val notification = Notification.Builder(applicationContext, channelId)
-            .setContentTitle("CloudflareBOX")
+            .setContentTitle("CFBox")
             .setContentText(if (progress >= 100) "R2への送信完了" else "送信中 $progress%")
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setOnlyAlertOnce(true)
