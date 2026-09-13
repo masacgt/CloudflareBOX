@@ -13,7 +13,7 @@ export interface AuthenticatedDevice {
   name: string;
 }
 
-export async function authenticateDevice(request: Request, env: Env, body: Uint8Array, requiredKind?: DeviceKind): Promise<AuthenticatedDevice> {
+export async function authenticateDevice(request: Request, env: Env, body: Uint8Array, requiredKind?: DeviceKind, bodyHashOverride?: string): Promise<AuthenticatedDevice> {
   const deviceId = request.headers.get("X-CB-Device-Id") ?? "";
   const timestamp = request.headers.get("X-CB-Timestamp") ?? "";
   const nonce = request.headers.get("X-CB-Nonce") ?? "";
@@ -31,7 +31,8 @@ export async function authenticateDevice(request: Request, env: Env, body: Uint8
 
   const url = new URL(request.url);
   const pathAndQuery = url.pathname + url.search;
-  const bodyHash = await sha256Hex(body);
+  const bodyHash = bodyHashOverride ?? await sha256Hex(body);
+  if (!/^[0-9a-f]{64}$/i.test(bodyHash)) throw new HttpError(401, "Invalid body hash", "auth_body_hash");
   const message = canonicalRequest(request.method, pathAndQuery, bodyHash, timestamp, nonce);
   const publicKey = await crypto.subtle.importKey(
     "spki",
