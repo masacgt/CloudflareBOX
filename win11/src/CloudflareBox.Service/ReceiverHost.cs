@@ -115,6 +115,13 @@ internal static class ReceiverHost
         return await api.StartAdditionalPairingAsync(ct);
     }
 
+    public static async Task<PairingStatusResponse> ApprovePairingAsync(string pairingId, string code, CancellationToken ct)
+    {
+        var settings = SettingsStore.Load<StoredSettings>(AppPaths.Settings);
+        using var api = new CloudflareBoxApiClient(settings.ApiBase);
+        return await api.ApprovePairingAsync(settings.SetupToken, pairingId, code, ct);
+    }
+
     public static async Task<DeviceListResponse> ListDevicesAsync(CancellationToken ct)
     {
         var settings = SettingsStore.Load<StoredSettings>(AppPaths.Settings);

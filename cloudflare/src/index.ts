@@ -3,7 +3,7 @@ import { authenticateDevice, HttpError } from "./auth";
 import { cancelTransfer, confirmPcSave } from "./completion";
 import { diagnostics, listDevices, revokeDevice } from "./devices";
 import { dailyMaintenance, scheduledMaintenance } from "./maintenance";
-import { pairingComplete, pairingStart, pairingStartForWindows, pairingStatus } from "./pairing";
+import { pairingApprove, pairingComplete, pairingStart, pairingStartForWindows, pairingStatus } from "./pairing";
 import { ackPcCommand, createStatusProbe, deviceStatus, pollPcCommands, probeStatus } from "./status";
 import { completeUpload, createTransfer, downloadContent, getTransferStatus, pendingTransfers, uploadPart } from "./transfers";
 import type { Env } from "./types";
@@ -30,7 +30,8 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
 
   const body = await requestBody(request);
   if (url.pathname === "/api/v1/pairing/start" && request.method === "POST") return json(await pairingStart(request, env, decodeJson(body)), 201);
-  if (url.pathname === "/api/v1/pairing/complete" && request.method === "POST") return json(await pairingComplete(env, decodeJson(body)), 201);
+  if (url.pathname === "/api/v1/pairing/complete" && request.method === "POST") return json(await pairingComplete(env, decodeJson(body)), 202);
+  if (url.pathname === "/api/v1/pairing/approve" && request.method === "POST") return json(await pairingApprove(request, env, decodeJson(body)));
   if (url.pathname === "/api/v1/pairing/status" && request.method === "GET") return json(await pairingStatus(env, url.searchParams.get("id") ?? "", url.searchParams.get("code") ?? ""));
 
   const partMatch = url.pathname.match(/^\/api\/v1\/transfers\/([^/]+)\/parts\/(\d+)$/);

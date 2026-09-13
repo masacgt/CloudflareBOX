@@ -55,6 +55,13 @@ internal static class Program
                     Console.WriteLine(JsonSerializer.Serialize(pairing, SettingsStore.Options));
                     return 0;
                 }
+                if (command == "--approve-pairing")
+                {
+                    var pairingId = Arg(args, 1) ?? throw new ArgumentException("Pairing ID is required.");
+                    var code = Arg(args, 2) ?? throw new ArgumentException("Pairing code is required.");
+                    Console.WriteLine(JsonSerializer.Serialize(await ReceiverHost.ApprovePairingAsync(pairingId, code, CancellationToken.None), SettingsStore.Options));
+                    return 0;
+                }
                 if (command == "--list-devices")
                 {
                     Console.WriteLine(JsonSerializer.Serialize(await ReceiverHost.ListDevicesAsync(CancellationToken.None), SettingsStore.Options));

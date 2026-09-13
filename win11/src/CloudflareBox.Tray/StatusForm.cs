@@ -34,6 +34,7 @@ internal sealed class StatusForm : Form
             Color.FromArgb(106, 68, 166),
             Button("Cloudflareと連携", async () => await ConnectCloudflareAsync(), setupButtonColor),
             Button("Androidを追加", async () => await AddAndroidAsync(), setupButtonColor),
+            Button("ペアリングQRを表示", () => { ShowInitialPairingQr(); return Task.CompletedTask; }, setupButtonColor),
             Button("初回ペアリングJSONをコピー", () => { CopyInitialPairing(); return Task.CompletedTask; }, setupButtonColor)));
 
         top.Controls.Add(CategoryGroup(
@@ -186,8 +187,11 @@ internal sealed class StatusForm : Form
         var result = await RunServiceAsync("--pair-device");
         if (result.ExitCode != 0) { ShowCommandResult(result, "Android追加"); return; }
         details.Text = "Android追加ペアリング\r\n\r\n" + result.StdOut;
-        if (!string.IsNullOrWhiteSpace(result.StdOut)) Clipboard.SetText(result.StdOut.Trim());
-        MessageBox.Show(this, "追加ペアリング情報を表示し、クリップボードにもコピーしました。", "CloudflareBOX");
+        if (!string.IsNullOrWhiteSpace(result.StdOut))
+        {
+            Clipboard.SetText(result.StdOut.Trim());
+            PairingQrDialog.Show(this, result.StdOut.Trim(), ResolveServiceExe());
+        }
     }
 
     private async Task ManageDevicesAsync()
@@ -363,6 +367,13 @@ internal sealed class StatusForm : Form
             Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "CloudflareBOX"); }
+    }
+
+    private void ShowInitialPairingQr()
+    {
+        var path = Path.Combine(Root, "pending-pairing.json");
+        if (File.Exists(path)) PairingQrDialog.Show(this, File.ReadAllText(path), ResolveServiceExe());
+        else MessageBox.Show(this, "現在、ペアリング待機情報はありません。Androidを追加する場合は「Androidを追加」を押してください。", "CloudflareBOX");
     }
 
     private void CopyInitialPairing()

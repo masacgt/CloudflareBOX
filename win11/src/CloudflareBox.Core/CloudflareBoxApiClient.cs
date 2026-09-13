@@ -45,6 +45,14 @@ public sealed class CloudflareBoxApiClient : IDisposable
         return await SendAsync<PairingStatusResponse>(request, ct);
     }
 
+    public async Task<PairingStatusResponse> ApprovePairingAsync(string setupToken, string pairingId, string code, CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "pairing/approve");
+        request.Headers.Add("X-CB-Setup-Token", setupToken);
+        request.Content = JsonContent.Create(new { pairingId, code }, options: json);
+        return await SendAsync<PairingStatusResponse>(request, ct);
+    }
+
     public Task<PendingTransfersResponse> GetPendingAsync(CancellationToken ct = default) =>
         SendSignedAsync<PendingTransfersResponse>(HttpMethod.Get, "transfers/pending", null, ct);
 

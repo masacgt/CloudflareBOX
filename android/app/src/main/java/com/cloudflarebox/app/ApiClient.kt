@@ -2,6 +2,7 @@ package com.cloudflarebox.app
 
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -76,7 +77,7 @@ class ApiClient(private val config: PairingConfig) {
     private fun sha256Hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     companion object {
-        suspend fun pair(rawPayload: String): PairingConfig = withContext(Dispatchers.IO) {
+        suspend fun pair(rawPayload: String, deviceName: String = Build.MODEL): PairingConfig = withContext(Dispatchers.IO) {
             val outer = JSONObject(rawPayload)
             val payload = if (outer.has("qrPayload")) outer.getJSONObject("qrPayload") else outer
             val apiBase = payload.getString("apiBase")
@@ -84,7 +85,7 @@ class ApiClient(private val config: PairingConfig) {
             val code = payload.getString("code")
             val windowsDeviceId = payload.getString("windowsDeviceId")
             val windowsKey = payload.getString("windowsEncryptionPublicKeySpkiB64")
-            val body = JSONObject().put("pairingId", pairingId).put("code", code).put("name", Build.MODEL).put("signingPublicKeySpkiB64", CryptoManager.signingPublicSpkiB64())
+            val body = JSONObject().put("pairingId", pairingId).put("code", code).put("name", deviceName.trim().ifBlank { Build.MODEL }).put("signingPublicKeySpkiB64", CryptoManager.signingPublicSpkiB64())
             val connection = URL(apiBase.trimEnd('/') + "/pairing/complete").openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.doOutput = true
@@ -96,7 +97,22 @@ class ApiClient(private val config: PairingConfig) {
             val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             if (responseCode !in 200..299) throw IllegalStateException("Pairing $responseCode: $text")
-            val response = JSONObject(text)
+            var response = JSONObject(text)
+            val deadline = System.currentTimeMillis() + 5 * 60_000L
+            while (response.optString("status") != "confirmed") {
+                if (response.optString("status") == "expired" || System.currentTimeMillis() >= deadline) throw IllegalStateException("ペアリングの有効期限が切れました。PCでQRコードを再表示してください。")
+                delay(1500)
+                val statusUrl = URL(apiBase.trimEnd('/') + "/pairing/status?id=" + java.net.URLEncoder.encode(pairingId, "UTF-8") + "&code=" + java.net.URLEncoder.encode(code, "UTF-8"))
+                val statusConnection = statusUrl.openConnection() as HttpURLConnection
+                statusConnection.requestMethod = "GET"
+                statusConnection.connectTimeout = 10_000
+                statusConnection.readTimeout = 20_000
+                val statusCode = statusConnection.responseCode
+                val statusStream = if (statusCode in 200..299) statusConnection.inputStream else statusConnection.errorStream
+                val statusText = statusStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (statusCode !in 200..299) throw IllegalStateException("Pairing status $statusCode: $statusText")
+                response = JSONObject(statusText)
+            }
             PairingConfig(apiBase, response.getString("androidDeviceId"), windowsDeviceId, windowsKey)
         }
     }
