@@ -84,6 +84,7 @@ class TransferDb(context: Context) : SQLiteOpenHelper(context, "cloudflarebox.db
             put("wrapped_key_b64", wrappedKeyB64)
             put("metadata_nonce_b64", metadataNonceB64)
             put("metadata_cipher_b64", metadataCipherB64)
+            putNull("error")
             put("state", "PREPARED")
         }
         writableDatabase.update("queue", values, "id=?", arrayOf(id.toString()))
@@ -95,6 +96,7 @@ class TransferDb(context: Context) : SQLiteOpenHelper(context, "cloudflarebox.db
         values.put("part_size", partSize)
         values.put("part_count", partCount)
         values.put("next_part", 1)
+        values.putNull("error")
         values.put("state", "UPLOADING")
         writableDatabase.update("queue", values, "id=?", arrayOf(id.toString()))
     }
@@ -103,6 +105,7 @@ class TransferDb(context: Context) : SQLiteOpenHelper(context, "cloudflarebox.db
         val values = ContentValues()
         values.put("next_part", nextPart)
         values.put("progress", progress)
+        values.putNull("error")
         values.put("state", "UPLOADING")
         writableDatabase.update("queue", values, "id=?", arrayOf(id.toString()))
     }
