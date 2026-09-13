@@ -45,7 +45,7 @@ internal static class CloudflareOAuth
         if (completed != contextTask) throw new TimeoutException("Cloudflare authorization timed out.");
         var context = await contextTask;
         var query = context.Request.QueryString;
-        var responseText = query["error"] is null ? "CloudflareBOXとの連携が完了しました。この画面を閉じてください。" : "CloudflareBOXとの連携を完了できませんでした。アプリに戻ってください。";
+        var responseText = query["error"] is null ? "CFBoxとの連携が完了しました。この画面を閉じてください。" : "CFBoxとの連携を完了できませんでした。アプリに戻ってください。";
         var responseBytes = Encoding.UTF8.GetBytes(responseText);
         context.Response.ContentType = "text/plain; charset=utf-8";
         context.Response.ContentLength64 = responseBytes.Length;
