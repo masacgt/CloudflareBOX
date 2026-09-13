@@ -92,8 +92,10 @@ class MainActivity : ComponentActivity() {
 
         LaunchedEffect(Unit) {
             while (true) {
+                val latest = withContext(Dispatchers.IO) { db.list() }
+                refreshCompletedTransfers(latest)
                 queue = withContext(Dispatchers.IO) { db.list() }
-                delay(1000)
+                delay(5000)
             }
         }
 
@@ -270,6 +272,7 @@ class MainActivity : ComponentActivity() {
     private fun TransferCard(item: QueueItem) {
         val stateLabel = when (item.state) {
             "R2_READY" -> "PCへ到着待ち"
+            "PC_SAVED" -> "PC保存完了"
             "UPLOADING" -> "送信中"
             "PREPARING" -> "準備中"
             "RETRYING" -> "再試行中"
@@ -280,7 +283,7 @@ class MainActivity : ComponentActivity() {
             else -> item.state
         }
         val stateColor = when (item.state) {
-            "R2_READY" -> MaterialTheme.colorScheme.tertiaryContainer
+            "R2_READY", "PC_SAVED" -> MaterialTheme.colorScheme.tertiaryContainer
             "FAILED", "CANCELED", "CANCEL_PENDING" -> MaterialTheme.colorScheme.errorContainer
             "PAUSED", "WAITING_BATTERY" -> MaterialTheme.colorScheme.secondaryContainer
             else -> MaterialTheme.colorScheme.primaryContainer
@@ -352,10 +355,10 @@ class MainActivity : ComponentActivity() {
                             db.setState(item.id, "QUEUED")
                             schedule(item.id)
                         }) { Text("再開") }
-                        "R2_READY", "CANCELED", "CANCEL_PENDING" -> Unit
+                        "R2_READY", "PC_SAVED", "CANCELED", "CANCEL_PENDING" -> Unit
                         else -> OutlinedButton(onClick = { db.setState(item.id, "PAUSED") }) { Text("一時停止") }
                     }
-                    if (item.state != "CANCELED" && item.state != "R2_READY" && item.state != "CANCEL_PENDING") {
+                    if (item.state != "CANCELED" && item.state != "R2_READY" && item.state != "PC_SAVED" && item.state != "CANCEL_PENDING") {
                         OutlinedButton(onClick = {
                             WorkManager.getInstance(this@MainActivity).cancelUniqueWork(workName(item.id))
                             db.setState(item.id, "CANCEL_PENDING")
@@ -363,6 +366,21 @@ class MainActivity : ComponentActivity() {
                         }) { Text("キャンセル") }
                     }
                 }
+            }
+        }
+    }
+
+    private suspend fun refreshCompletedTransfers(items: List<QueueItem>) {
+        val config = PairingStore.load(this) ?: return
+        val api = ApiClient(config)
+        items.filter { it.state == "R2_READY" && !it.remoteId.isNullOrBlank() }.forEach { item ->
+            try {
+                val state = api.transferStatus(item.remoteId!!).optString("state")
+                if (state == "DELETE_PENDING" || state == "COMPLETE") {
+                    db.setState(item.id, "PC_SAVED")
+                }
+            } catch (_: Exception) {
+                // A temporary status-check failure must not change the upload state.
             }
         }
     }
