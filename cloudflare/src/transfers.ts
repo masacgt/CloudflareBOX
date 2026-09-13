@@ -16,6 +16,18 @@ async function loadTransfer(env: Env, id: string): Promise<TransferRow> {
   return row;
 }
 
+export async function getTransferStatus(env: Env, device: AuthenticatedDevice, id: string): Promise<object> {
+  const row = await loadTransfer(env, id);
+  assertOwner(row, device);
+  return {
+    transferId: row.id,
+    state: row.state,
+    pcSavedAt: row.pc_saved_at,
+    completedAt: row.completed_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function assertOwner(row: TransferRow, device: AuthenticatedDevice): void {
   if (device.kind === "android" && row.android_device_id !== device.id) throw new HttpError(403, "Transfer belongs to another device", "transfer_owner");
   if (device.kind === "windows" && row.windows_device_id !== device.id) throw new HttpError(403, "Transfer belongs to another device", "transfer_owner");
