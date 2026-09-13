@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CloudflareBOX</string>
+    <string name="app_name">CFBox</string>
     <style name="Theme.CloudflareBOX" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:colorAccent">#2563EB</item>
