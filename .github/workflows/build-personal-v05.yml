@@ -1,0 +1,81 @@
+name: Build personal v0.5
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PERSONAL_REF: personal-v0.5
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PERSONAL_REF }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloudflare/package.json
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-personal-v0.5-worker
+          path: cloudflare/dist/cloudflarebox-worker.mjs
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PERSONAL_REF }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew
+        working-directory: android
+      - run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-personal-v0.5-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PERSONAL_REF }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore .\CloudflareBox.slnx
+        working-directory: win11
+      - run: dotnet build .\CloudflareBox.slnx --configuration Release --no-restore
+        working-directory: win11
+      - run: dotnet run --project .\tests\CloudflareBox.Core.Tests\CloudflareBox.Core.Tests.csproj --configuration Release
+        working-directory: win11
+      - run: dotnet publish .\src\CloudflareBox.Service\CloudflareBox.Service.csproj --configuration Release --runtime win-x64 --self-contained true --output .\package\service
+        working-directory: win11
+      - run: dotnet publish .\src\CloudflareBox.Tray\CloudflareBox.Tray.csproj --configuration Release --runtime win-x64 --self-contained true --output .\package\tray
+        working-directory: win11
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfbox-personal-v0.5-windows
+          path: |
+            win11/package/service
+            win11/package/tray
+            win11/installer
