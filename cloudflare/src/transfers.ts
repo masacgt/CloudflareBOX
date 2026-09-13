@@ -84,6 +84,9 @@ export async function completeUpload(env: Env, device: AuthenticatedDevice, id: 
   const row = await loadTransfer(env, id);
   assertOwner(row, device);
   if (device.kind !== "android") throw new HttpError(403, "Android role required", "auth_role");
+  if (["R2_READY", "PC_DOWNLOADING", "VERIFYING", "DELETE_PENDING", "COMPLETE"].includes(row.state)) {
+    return { transferId: id, state: row.state, idempotent: true };
+  }
   if (row.state !== "UPLOADING" && row.state !== "PAUSED") throw new HttpError(409, "Transfer cannot be completed from current state", "transfer_state");
   const parts = await env.DB.prepare("SELECT part_number,etag FROM transfer_parts WHERE transfer_id=? ORDER BY part_number").bind(id).all<{ part_number: number; etag: string }>();
   if (parts.results.length !== row.part_count) throw new HttpError(409, "Not all parts are uploaded", "parts_incomplete");
