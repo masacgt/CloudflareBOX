@@ -5,7 +5,7 @@ import type { Env, TransferRow } from "./types";
 import { budgetSnapshot, recordUsage } from "./usage";
 
 const MAX_FILE_BYTES = 10_000_000_000;
-const PART_SIZE = 16 * 1024 * 1024;
+const PART_SIZE = 8 * 1024 * 1024;
 const FRAME_OVERHEAD = 29;
 
 function partCountFor(size: number): number { return size === 0 ? 1 : Math.ceil(size / PART_SIZE); }
