@@ -24,22 +24,35 @@ internal sealed class StatusForm : Form
         top.Controls.Add(status);
         top.Controls.Add(destination);
 
-        var primary = new FlowLayoutPanel { AutoSize = true };
-        primary.Controls.Add(Button("Cloudflareと連携", async () => await ConnectCloudflareAsync()));
-        primary.Controls.Add(Button("診断", async () => await RunAndShowAsync("--diagnose")));
-        primary.Controls.Add(Button("修復", async () => await RunAndShowAsync("--repair-cloudflare")));
-        primary.Controls.Add(Button("Androidを追加", async () => await AddAndroidAsync()));
-        primary.Controls.Add(Button("端末一覧・失効", async () => await ManageDevicesAsync()));
-        primary.Controls.Add(Button("復旧情報を保存", async () => await ExportRecoveryAsync()));
-        top.Controls.Add(primary);
+        var setupButtonColor = Color.FromArgb(237, 228, 255);
+        var normalButtonColor = Color.FromArgb(229, 246, 249);
+        var maintenanceButtonColor = Color.FromArgb(255, 244, 226);
 
-        var secondary = new FlowLayoutPanel { AutoSize = true };
-        secondary.Controls.Add(Button("更新", () => { RefreshView(); return Task.CompletedTask; }));
-        secondary.Controls.Add(Button("保存先を開く", () => { OpenDestination(); return Task.CompletedTask; }));
-        secondary.Controls.Add(Button("初回ペアリングJSONをコピー", () => { CopyInitialPairing(); return Task.CompletedTask; }));
-        secondary.Controls.Add(Button("受信 一時停止/再開", () => { TogglePause(); return Task.CompletedTask; }));
-        secondary.Controls.Add(Button("Cloudflare連携解除", async () => await UnlinkCloudflareAsync()));
-        top.Controls.Add(secondary);
+        top.Controls.Add(CategoryGroup(
+            "セットアップ",
+            "Cloudflare連携とAndroid端末の登録を行います。",
+            Color.FromArgb(106, 68, 166),
+            Button("Cloudflareと連携", async () => await ConnectCloudflareAsync(), setupButtonColor),
+            Button("Androidを追加", async () => await AddAndroidAsync(), setupButtonColor),
+            Button("初回ペアリングJSONをコピー", () => { CopyInitialPairing(); return Task.CompletedTask; }, setupButtonColor)));
+
+        top.Controls.Add(CategoryGroup(
+            "通常操作",
+            "日常の受信確認と保存先の操作を行います。",
+            Color.FromArgb(38, 132, 150),
+            Button("更新", () => { RefreshView(); return Task.CompletedTask; }, normalButtonColor),
+            Button("保存先を開く", () => { OpenDestination(); return Task.CompletedTask; }, normalButtonColor),
+            Button("受信 一時停止/再開", () => { TogglePause(); return Task.CompletedTask; }, normalButtonColor)));
+
+        top.Controls.Add(CategoryGroup(
+            "メンテナンス",
+            "診断、復旧、端末管理、Cloudflare連携の解除を行います。",
+            Color.FromArgb(174, 105, 22),
+            Button("診断", async () => await RunAndShowAsync("--diagnose"), maintenanceButtonColor),
+            Button("修復", async () => await RunAndShowAsync("--repair-cloudflare"), maintenanceButtonColor),
+            Button("復旧情報を保存", async () => await ExportRecoveryAsync(), maintenanceButtonColor),
+            Button("端末一覧・失効", async () => await ManageDevicesAsync(), maintenanceButtonColor),
+            Button("Cloudflare連携解除", async () => await UnlinkCloudflareAsync(), maintenanceButtonColor)));
 
         Controls.Add(details);
         Controls.Add(top);
@@ -60,9 +73,65 @@ internal sealed class StatusForm : Form
         RefreshView();
     }
 
-    private static Button Button(string text, Func<Task> action)
+    private static GroupBox CategoryGroup(string title, string description, Color accent, params Button[] buttons)
     {
-        var button = new Button { Text = text, AutoSize = true };
+        var group = new GroupBox
+        {
+            Text = title,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Width = 800,
+            ForeColor = accent,
+            Padding = new Padding(10, 24, 10, 10),
+            Margin = new Padding(0, 0, 0, 10),
+        };
+        var layout = new TableLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(4, 0, 4, 0),
+        };
+        var descriptionLabel = new Label
+        {
+            Text = description,
+            AutoSize = true,
+            ForeColor = Color.DimGray,
+            Margin = new Padding(0, 0, 0, 8),
+        };
+        var buttonPanel = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            WrapContents = true,
+            FlowDirection = FlowDirection.LeftToRight,
+            Dock = DockStyle.Top,
+            Margin = new Padding(0),
+        };
+        buttonPanel.Controls.AddRange(buttons);
+        layout.Controls.Add(descriptionLabel, 0, 0);
+        layout.Controls.Add(buttonPanel, 0, 1);
+        group.Controls.Add(layout);
+        return group;
+    }
+
+    private static Button Button(string text, Func<Task> action, Color? backgroundColor = null)
+    {
+        var button = new Button
+        {
+            Text = text,
+            AutoSize = true,
+            Margin = new Padding(3),
+        };
+        if (backgroundColor.HasValue)
+        {
+            button.BackColor = backgroundColor.Value;
+            button.UseVisualStyleBackColor = false;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderColor = ControlPaint.Dark(backgroundColor.Value);
+        }
         button.Click += async (_, _) =>
         {
             button.Enabled = false;
