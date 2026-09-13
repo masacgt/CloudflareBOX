@@ -71,7 +71,7 @@ class QrPairingActivity : ComponentActivity() {
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("CloudflareBOX", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                Text("CFBox", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text("Windows PCとペアリング", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             ElevatedCard {
@@ -87,7 +87,7 @@ class QrPairingActivity : ComponentActivity() {
                     )
                     Button(
                         onClick = {
-                            scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("CloudflareBOXのQRコードを読み取ってください").setBeepEnabled(false).setOrientationLocked(false))
+                            scanner.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setPrompt("CFBoxのQRコードを読み取ってください").setBeepEnabled(false).setOrientationLocked(false))
                         },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
