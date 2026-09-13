@@ -5,7 +5,7 @@ import { diagnostics, listDevices, revokeDevice } from "./devices";
 import { dailyMaintenance, scheduledMaintenance } from "./maintenance";
 import { pairingComplete, pairingStart, pairingStartForWindows, pairingStatus } from "./pairing";
 import { ackPcCommand, createStatusProbe, deviceStatus, pollPcCommands, probeStatus } from "./status";
-import { completeUpload, createTransfer, downloadContent, pendingTransfers, uploadPart } from "./transfers";
+import { completeUpload, createTransfer, downloadContent, getTransferStatus, pendingTransfers, uploadPart } from "./transfers";
 import type { Env } from "./types";
 
 function json(data: unknown, status = 200): Response {
@@ -41,6 +41,9 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
   if (partMatch && request.method === "PUT") {
     return json(await uploadPart(env, device, partMatch[1], Number(partMatch[2]), body, request.headers.get("X-CB-Part-Sha256") ?? ""));
   }
+  const statusMatch = url.pathname.match(/^\/api\/v1\/transfers\/([^/]+)\/status$/);
+  if (statusMatch && request.method === "GET") return json(await getTransferStatus(env, device, statusMatch[1]));
+
   const contentMatch = url.pathname.match(/^\/api\/v1\/transfers\/([^/]+)\/content$/);
   if (contentMatch && request.method === "GET") return await downloadContent(env, device, contentMatch[1], request);
 
