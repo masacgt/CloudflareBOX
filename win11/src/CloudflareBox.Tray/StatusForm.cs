@@ -12,6 +12,9 @@ internal sealed class StatusForm : Form
     private readonly NotifyIcon tray = new();
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 2000 };
     private static string Root => Environment.GetEnvironmentVariable("CLOUDFLAREBOX_DATA_DIR") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "CloudflareBOX");
+    private static Icon TrayIcon => File.Exists(Path.Combine(AppContext.BaseDirectory, "cfbox.ico"))
+        ? new Icon(Path.Combine(AppContext.BaseDirectory, "cfbox.ico"))
+        : SystemIcons.Application;
 
     public StatusForm()
     {
@@ -65,7 +68,7 @@ internal sealed class StatusForm : Form
         menu.Items.Add("受信 一時停止/再開", null, (_, _) => TogglePause());
         menu.Items.Add("終了", null, (_, _) => { tray.Visible = false; Application.Exit(); });
         tray.Text = "CFBox";
-        tray.Icon = SystemIcons.Application;
+        tray.Icon = TrayIcon;
         tray.ContextMenuStrip = menu;
         tray.Visible = true;
         tray.DoubleClick += (_, _) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
