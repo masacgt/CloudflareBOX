@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <application android:allowBackup="false" android:label="CloudflareBOX" android:theme="@style/Theme.CloudflareBOX">
+    <application android:allowBackup="false" android:label="CFBox" android:theme="@style/Theme.CloudflareBOX">
         <activity android:name=".QrPairingActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
