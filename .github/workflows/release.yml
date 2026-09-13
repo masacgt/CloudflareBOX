@@ -127,7 +127,7 @@ jobs:
         run: |
           $pfxPath = Join-Path $env:RUNNER_TEMP 'cfbox-signing.pfx'
           [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
-          $signtool = Get-ChildItem "$env:ProgramFiles(x86)\Windows Kits\10\bin" -Filter signtool.exe -Recurse -ErrorAction Stop | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse -ErrorAction Stop | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
           $files = Get-ChildItem .\package -Recurse -File | Where-Object { $_.Extension -in @('.exe', '.dll') }
           if ($files.Count -eq 0) { throw 'No Windows binaries were found to sign.' }
           foreach ($file in $files) {
