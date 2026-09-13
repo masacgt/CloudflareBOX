@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                 TopAppBar(
                     title = {
                         Column {
-                            Text("CloudflareBOX", fontWeight = FontWeight.SemiBold)
+                            Text("CFBox", fontWeight = FontWeight.SemiBold)
                             Text(
                                 "スマホから自宅PCへ安全に転送",
                                 style = MaterialTheme.typography.labelSmall,
