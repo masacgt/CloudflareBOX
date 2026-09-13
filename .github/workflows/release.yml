@@ -185,8 +185,8 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         working-directory: release
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt --clobber
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --title "CFBox $RELEASE_TAG" --notes-file RELEASE_NOTES.md CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "CFBox $RELEASE_TAG" --notes-file RELEASE_NOTES.md CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt
           fi
