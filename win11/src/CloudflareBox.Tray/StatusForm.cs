@@ -15,7 +15,7 @@ internal sealed class StatusForm : Form
 
     public StatusForm()
     {
-        Text = "CloudflareBOX";
+        Text = "CFBox";
         Width = 860;
         Height = 560;
         StartPosition = FormStartPosition.CenterScreen;
@@ -64,7 +64,7 @@ internal sealed class StatusForm : Form
         menu.Items.Add("診断", null, async (_, _) => await RunAndShowAsync("--diagnose"));
         menu.Items.Add("受信 一時停止/再開", null, (_, _) => TogglePause());
         menu.Items.Add("終了", null, (_, _) => { tray.Visible = false; Application.Exit(); });
-        tray.Text = "CloudflareBOX";
+        tray.Text = "CFBox";
         tray.Icon = SystemIcons.Application;
         tray.ContextMenuStrip = menu;
         tray.Visible = true;
@@ -137,7 +137,7 @@ internal sealed class StatusForm : Form
         {
             button.Enabled = false;
             try { await action(); }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "CloudflareBOX", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "CFBox", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             finally { button.Enabled = true; }
         };
         return button;
@@ -148,7 +148,7 @@ internal sealed class StatusForm : Form
         var clientId = ResolveOAuthClientId();
         if (string.IsNullOrWhiteSpace(clientId))
         {
-            MessageBox.Show(this, "Cloudflare OAuth Client ID が配布物に設定されていません。", "CloudflareBOX", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Cloudflare OAuth Client ID が配布物に設定されていません。", "CFBox", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -209,8 +209,8 @@ internal sealed class StatusForm : Form
     {
         using var dialog = new SaveFileDialog
         {
-            Title = "CloudflareBOX 復旧ファイルの保存先",
-            Filter = "CloudflareBOX Recovery (*.cbxr)|*.cbxr|All files (*.*)|*.*",
+            Title = "CFBox 復旧ファイルの保存先",
+            Filter = "CFBox Recovery (*.cbxr)|*.cbxr|All files (*.*)|*.*",
             FileName = "cloudflarebox-recovery.cbxr",
         };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -221,7 +221,7 @@ internal sealed class StatusForm : Form
 
     private async Task UnlinkCloudflareAsync()
     {
-        var answer = MessageBox.Show(this, "このインストール専用の Worker・D1・R2 を削除し、Cloudflare連携を解除します。転送中データがある場合は自動的に拒否されます。続行しますか？", "CloudflareBOX", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+        var answer = MessageBox.Show(this, "このインストール専用の Worker・D1・R2 を削除し、Cloudflare連携を解除します。転送中データがある場合は自動的に拒否されます。続行しますか？", "CFBox", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
         if (answer != DialogResult.Yes) return;
         var result = await RunServiceAsync("--unlink-cloudflare");
         ShowCommandResult(result, "Cloudflare連携解除");
@@ -253,7 +253,7 @@ internal sealed class StatusForm : Form
             CreateNoWindow = true,
         };
         foreach (var arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("CloudflareBOX サービス操作を開始できませんでした。");
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("CFBox サービス操作を開始できませんでした。");
         var stdoutTask = process.StandardOutput.ReadToEndAsync();
         var stderrTask = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
@@ -289,7 +289,7 @@ internal sealed class StatusForm : Form
             MaximizeBox = false,
             MinimizeBox = false,
         };
-        var label = new Label { Left = 12, Top = 14, Width = 580, Height = 42, Text = "CloudflareBOX用のR2・D1・Workerを作成するアカウントを選択してください。" };
+        var label = new Label { Left = 12, Top = 14, Width = 580, Height = 42, Text = "CFBox用のR2・D1・Workerを作成するアカウントを選択してください。" };
         var combo = new ComboBox { Left = 12, Top = 62, Width = 580, DropDownStyle = ComboBoxStyle.DropDownList };
         foreach (var account in accounts) combo.Items.Add(account);
         combo.SelectedIndex = 0;
@@ -366,21 +366,21 @@ internal sealed class StatusForm : Form
             Directory.CreateDirectory(path);
             Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "CloudflareBOX"); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "CFBox"); }
     }
 
     private void ShowInitialPairingQr()
     {
         var path = Path.Combine(Root, "pending-pairing.json");
         if (File.Exists(path)) PairingQrDialog.Show(this, File.ReadAllText(path), ResolveServiceExe());
-        else MessageBox.Show(this, "現在、ペアリング待機情報はありません。Androidを追加する場合は「Androidを追加」を押してください。", "CloudflareBOX");
+        else MessageBox.Show(this, "現在、ペアリング待機情報はありません。Androidを追加する場合は「Androidを追加」を押してください。", "CFBox");
     }
 
     private void CopyInitialPairing()
     {
         var path = Path.Combine(Root, "pending-pairing.json");
         if (File.Exists(path)) Clipboard.SetText(File.ReadAllText(path));
-        else MessageBox.Show(this, "現在、初回ペアリング待機情報はありません。", "CloudflareBOX");
+        else MessageBox.Show(this, "現在、初回ペアリング待機情報はありません。", "CFBox");
     }
 
     private void TogglePause()
@@ -396,7 +396,7 @@ internal sealed class StatusForm : Form
             }
             RefreshView();
         }
-        catch (Exception ex) { MessageBox.Show(this, ex.Message, "CloudflareBOX"); }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "CFBox"); }
     }
 
     private static string? Prompt(string message, string title)
