@@ -1,7 +1,7 @@
 CFBox Windows 11 クイックスタート
 
 1. このZIPを任意のフォルダへ展開します。
-2. Install-CFBox.cmd を実行します。
+2. Install-CloudflareBOX.cmd を実行します。
 3. Windowsのユーザーアカウント制御が表示されたら「はい」を選びます。
 4. インストール後、タスクトレイの CFBox を開きます。
 5. 「Cloudflareと連携」を押し、ブラウザで自分のCloudflareアカウントへログインして必要な権限を許可します。
