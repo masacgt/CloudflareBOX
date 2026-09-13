@@ -3,6 +3,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val releaseStoreFile = providers.gradleProperty("CFBOX_RELEASE_STORE_FILE").orNull
+val releaseStorePassword = providers.gradleProperty("CFBOX_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.gradleProperty("CFBOX_RELEASE_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.gradleProperty("CFBOX_RELEASE_KEY_PASSWORD").orNull
+val hasReleaseSigning = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.cloudflarebox.app"
     compileSdk = 37
@@ -12,6 +23,23 @@ android {
         targetSdk = 37
         versionCode = 5
         versionName = "0.1.4"
+    }
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
     buildFeatures { compose = true }
 }
