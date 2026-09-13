@@ -332,7 +332,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                if (!item.error.isNullOrBlank()) {
+                if (item.state == "RETRYING") {
+                    Text(
+                        "通信が一時的に中断されました。自動的に再試行しています。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else if (!item.error.isNullOrBlank()) {
                     Text(
                         item.error,
                         style = MaterialTheme.typography.bodySmall,
