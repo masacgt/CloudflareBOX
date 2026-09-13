@@ -35,14 +35,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val db by lazy { TransferDb(this) }
@@ -69,19 +72,18 @@ class MainActivity : ComponentActivity() {
         var pairingText by remember { mutableStateOf("") }
         var message by remember { mutableStateOf("") }
         var paired by remember { mutableStateOf(PairingStore.load(this) != null) }
-        var queue by remember { mutableStateOf(db.list()) }
+        var queue by remember { mutableStateOf(emptyList<QueueItem>()) }
         val scope = rememberCoroutineScope()
         val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
             uris.forEach { uri ->
                 try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) { }
                 enqueueUri(uri)
             }
-            queue = db.list()
         }
 
         LaunchedEffect(Unit) {
             while (true) {
-                queue = db.list()
+                queue = withContext(Dispatchers.IO) { db.list() }
                 delay(1000)
             }
         }
@@ -182,10 +184,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun enqueueUri(uri: Uri) {
-        val metadata = queryMetadata(uri)
-        if (metadata.second !in 0..10_000_000_000L) return
-        val id = db.enqueue(uri.toString(), metadata.first, metadata.second, contentResolver.getType(uri))
-        if (PairingStore.load(this) != null) schedule(id)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val metadata = queryMetadata(uri)
+            if (metadata.second !in 0..10_000_000_000L) return@launch
+            val id = db.enqueue(uri.toString(), metadata.first, metadata.second, contentResolver.getType(uri))
+            if (PairingStore.load(this@MainActivity) != null) schedule(id)
+        }
     }
 
     private fun queryMetadata(uri: Uri): Pair<String, Long> {
