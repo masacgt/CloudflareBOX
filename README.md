@@ -1,73 +1,139 @@
-# CloudflareBOX
+# CFBox
 
-Android から利用者自身の Cloudflare を一時中継にして、自宅の Windows 11 PC へ暗号化ファイルを自動転送するシステムです。
+Androidスマートフォンから、自分のCloudflareアカウントを中継して、自宅のWindows 11 PCへファイルを送る一方向転送システムです。
 
-転送方向は Android -> Cloudflare Worker/R2 -> Windows 11 の一方向です。1ファイル上限は 10,000,000,000 bytes、R2 は非公開です。Android 側で AES-256-GCM 暗号化し、ファイル鍵は Windows の RSA-3072 公開鍵へ RSA-OAEP-SHA256 でラップします。Windows が復号後のファイル全体 SHA-256 を照合し、完全一致して正式保存できた場合だけ、5分後に R2 から削除します。
+## 現在の仕様
 
-ファイル本体は署名付き R2 URL を利用しません。Android と Windows は端末署名付き HTTPS で Worker に接続し、Worker の R2 binding を通して 16 MiB 単位の multipart upload と Range download を行います。R2 Access Key / Secret は利用者にもアプリにも不要です。
+- Android → Cloudflare Worker/R2 → Windows 11 の一方向転送
+- Androidのみ対応
+- 1ファイル上限は10,000,000,000 bytes（10 GB）
+- あらゆるファイル形式に対応
+- R2バケットは非公開
+- Android側でAES-256-GCM暗号化
+- ファイル鍵はWindowsのRSA-3072公開鍵でRSA-OAEP-SHA256により保護
+- Windowsでファイル全体のSHA-256を照合し、完全一致した場合だけ正式保存
+- 保存確認後、暗号化データをR2から削除
+- 通信断、アプリ再起動、PC再起動後の転送再開に対応
+- Wi-Fiとモバイル回線のどちらでも転送可能
+- 1台のWindows PCに複数のAndroid端末を登録可能
+- Android端末ごとに個別の端末ID・署名鍵を持ち、個別に失効可能
+- フォルダ構造は転送せず、Windowsの固定保存先へ保存
+- Windowsは常駐サービスとタスクトレイUIで動作
+- R2 Access KeyやSecretの手入力は不要
 
-1台の Windows PC に複数の Android を登録できます。Android ごとに独立した device ID と署名鍵を持ち、個別に失効できます。アップロード・ダウンロード・キャンセルは通信断や再起動後に再開できます。
+ファイル本体は署名付きR2 URLを利用しません。AndroidとWindowsは端末署名付きHTTPSでWorkerに接続し、WorkerのR2 bindingを通して16 MiB単位のmultipart uploadとRange downloadを行います。
+
+## 配布版
+
+最新の配布版はGitHub Releaseの[v0.1.4](https://github.com/masacgt/CloudflareBOX/releases/tag/v0.1.4)です。
+
+- [Android APK](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Android-v0.1.4.apk)
+- [Windows 11 ZIP](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Windows-v0.1.4.zip)
+- [SHA256SUMS.txt](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/SHA256SUMS.txt)
+
+Android APKはRelease署名済みです。署名鍵は将来の更新に必要なため、配布者が安全に保管します。
+
+Windows ZIPはテスト用の自己署名コード署名です。そのため、Windows SmartScreenや証明書に関する警告が表示されます。一般配布で警告を減らすには、認証局のコード署名証明書へ切り替える必要があります。
+
+このリポジトリが非公開の場合、Releaseのダウンロードにはリポジトリへのアクセス権が必要です。
 
 ## 利用者向けセットアップ
 
-Windows 配布 ZIP は .NET ランタイム込みの self-contained 形式です。利用者が .NET を別途導入する必要はありません。
+Windows配布ZIPは.NETランタイム込みのself-contained形式です。利用者が.NETを別途インストールする必要はありません。
 
-1. `CloudflareBOX-Windows.zip` を展開します。
-2. `Install-CloudflareBOX.cmd` をダブルクリックします。
-3. Windows の UAC が表示されたら許可します。
-4. インストール後、タスクトレイの CloudflareBOX を開き、「Cloudflareと連携」を押します。
-5. ブラウザで利用者自身の Cloudflare アカウントへログインし、CloudflareBOX に必要な権限を許可します。
-6. OAuth で複数の Cloudflare アカウントが利用可能な場合だけ、Windows にアカウント選択画面が表示されます。R2・D1・Worker を作成する1アカウントを選択します。
-7. CloudflareBOX が、そのインストール専用の R2・D1・Worker、schema、binding、cron と必要な workers.dev 設定を自動作成または修復します。
-8. Windows の「Androidを追加」からペアリング情報を発行し、Android アプリへ登録します。2台目以降も同じ操作で追加できます。
+1. `CFBox-Windows-v0.1.4.zip`を展開します。
+2. `Install-CloudflareBOX.cmd`をダブルクリックします。
+3. Windowsのユーザーアカウント制御が表示されたら「はい」を選びます。
+4. インストール後、タスクトレイのCFBoxを開きます。
+5. 「Cloudflareと連携」を押します。
+6. ブラウザで利用者自身のCloudflareアカウントへログインし、必要な権限を許可します。
+7. Cloudflareアカウントが複数ある場合は、CFBoxで使用するアカウントを選択します。
+8. Cloudflareとの構築が完了したら、Windowsの「Androidを追加」を押します。
+9. Windowsに表示されたQRコードをAndroidアプリで読み取り、ペアリングを承認します。
+10. Androidアプリで「ファイルを選択」から転送します。
 
-Windows service はインストール直後から起動し、Cloudflare 未連携の間は待機します。複数アカウントの選択待ちになった場合も終了せず待機します。選択とCloudflare構築が完了すると共有設定を読み込み、再インストールせず受信を開始します。
+CloudflareダッシュボードでR2・D1・Workerを手作業で作成する必要はありません。CFBoxがインストール専用のR2・D1・Worker、D1スキーマ、binding、cron、workers.dev設定を自動作成・更新します。
 
-Cloudflare ダッシュボードで R2 や D1 を手作業することは通常ありません。修復処理は同じ installation ID を基準に繰り返し実行でき、連携解除ではそのインストール専用の Worker・D1・R2 だけを削除します。未完了転送がある場合は削除を拒否し、アカウント共通の workers.dev サブドメインは削除しません。
+利用者が入力する必要がないものは、R2 Access Key、R2 Secret、R2バケット名、D1データベースID、Worker名、API URLです。
+
+## Android端末を追加する
+
+1台目と同じ手順で、Windowsの「Androidを追加」から端末ごとのQRコードを発行します。
+
+複数のAndroid端末を登録できます。端末ごとに独立した認証情報を持つため、不要になった端末だけを失効できます。
 
 ## 復旧
 
-Windows の署名鍵・復号鍵を失うと、Cloudflare 上の暗号化済みファイルは復号できません。そのため、Windows から暗号化された復旧ファイルを出力できます。復旧ファイルは利用者の復旧コードで保護し、Cloudflare OAuth トークンは含めません。新しい PC では復旧ファイルを読み込んだ後、Cloudflare へ再ログインします。
+Windowsの署名鍵・復号鍵を失うと、Cloudflare上の暗号化済みファイルを復号できません。
 
-## 配布 ZIP の内容
+Windowsアプリの「復旧情報を保存」で、暗号化された復旧ファイルを安全な場所へ保存してください。復旧ファイルは復旧コードで保護され、Cloudflare OAuthトークンは含みません。
 
-GitHub Actions の `cloudflarebox-windows` artifact には、次を含む `CloudflareBOX-Windows.zip` が入ります。
+新しいWindows PCでは、復旧情報を読み込んだ後にCloudflareへ再連携します。
 
-- `service/`: Windows 常駐 service と self-contained .NET runtime
-- `tray/`: タスクトレイ UI と self-contained .NET runtime
+## Cloudflare連携に必要なもの
+
+利用者自身のCloudflareアカウントが必要です。CFBoxはOAuthで連携し、必要なリソースをそのアカウント内に構築します。
+
+OAuth Clientは配布者が用意し、Windows配布ZIPの`oauth-client-id.txt`に公開Client IDとして同梱します。Client Secretは配布物へ同梱しません。
+
+必要なOAuth scopeは次のとおりです。
+
+- `account-settings.read`: 利用可能なCloudflareアカウントの取得と選択
+- `workers-scripts.write`: Worker、workers.dev、cronの作成・更新・削除
+- `workers-r2.write`: 専用R2バケットの作成・確認・削除
+- `d1.write`: 専用D1の作成・スキーマ適用・確認・削除
+
+## Cloudflareリソースの削除
+
+Cloudflare連携を解除すると、そのインストール専用のWorker・D1・R2だけを削除します。
+
+未完了転送がある場合は削除を拒否します。アカウント共通のworkers.devサブドメインは削除しません。
+
+## 配布ZIPの内容
+
+Windows ZIPには次のファイルが含まれます。
+
+- `service/`: Windows常駐サービスとself-contained .NET runtime
+- `tray/`: タスクトレイUIとself-contained .NET runtime
 - `worker/cloudflarebox-worker.mjs`: Cloudflare Worker bundle
-- `install.ps1`: 実際のインストール処理
-- `uninstall.ps1`: 管理者 PowerShell から実行するアンインストール処理
-- `Install-CloudflareBOX.cmd`: 利用者向けの通常インストール入口
-- `START-HERE.txt`: 配布 ZIP 内の導入案内
-- `oauth-client-id.txt`: `CLOUDFLAREBOX_OAUTH_CLIENT_ID` から生成する配布必須ファイル
+- `install.ps1`: インストール処理
+- `uninstall.ps1`: アンインストール処理
+- `Install-CloudflareBOX.cmd`: 通常インストール入口
+- `START-HERE.txt`: 導入案内
+- `oauth-client-id.txt`: 配布用OAuth Client ID
 
-CI では Service/Tray の実行ファイルと `coreclr.dll`、Worker bundle、各 installer ファイルの存在を確認してから ZIP を生成します。
+## GitHub Actions
 
-## CI
+[CFBox Release workflow](https://github.com/masacgt/CloudflareBOX/actions/workflows/release.yml)は、手動実行で次を行います。
 
-GitHub Actions は次を検証・生成します。
+- Workerのtypecheck、テスト、bundle
+- Android Release署名APKの作成
+- Windows self-containedアプリのpublish
+- WindowsバイナリのPFX署名
+- Windows ZIPの作成
+- SHA-256ファイルの作成
+- GitHub ReleaseへのAPK・ZIP・SHA-256の登録
 
-- Worker: TypeScript typecheck、Node test、bundle、Wrangler deploy dry-run
-- Windows: Release build、Core tests
-- Android: debug APK build
-- Windows package: installer PowerShell 構文確認、Service/Tray の `win-x64` self-contained publish、Worker bundle 組み込み、必須ファイル確認、ZIP 作成
+Releaseワークフローには次のActions Secretsが必要です。
 
-Windows Core tests では暗号処理に加え、Range 再開時の `206 Content-Range`、開始位置、全体サイズ、残り長さを検証し、不正な resume 応答を拒否します。
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `WINDOWS_SIGNING_PFX_BASE64`
+- `WINDOWS_SIGNING_PFX_PASSWORD`
 
-## 公開配布前に必要なもの
+Windows配布にはRepository variable `CLOUDFLAREBOX_OAUTH_CLIENT_ID`も必要です。
 
-Cloudflare OAuth の Public Client を正式登録し、デスクトップ向け Authorization Code + PKCE（S256）、token endpoint authentication `none`、loopback redirect `http://127.0.0.1:53682/oauth/callback/` を設定する必要があります。
+署名設定の詳細は[`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md)を参照してください。
 
-OAuth Client には少なくとも次の scope を登録します。
+## 自分用の固定版
 
-- `account-settings.read`: OAuth で許可された Cloudflare アカウントの取得と選択
-- `workers-scripts.write`: Worker、workers.dev、cron の作成・更新・削除
-- `workers-r2.write`: installation 専用 R2 bucket の作成・確認・削除
-- `d1.write`: installation 専用 D1 の作成・schema 適用・確認・削除
+自分用のテスト環境を残すため、[`personal-v0.5`ブランチ](https://github.com/masacgt/CloudflareBOX/tree/personal-v0.5)を固定しています。
 
-公開 Client ID は GitHub repository variable `CLOUDFLAREBOX_OAUTH_CLIENT_ID` に設定します。Client Secret はデスクトップ配布物へ同梱しません。
+配布版の変更はこのブランチへ反映しません。
 
-現時点では、実ユーザーの Cloudflare アカウントを使った OAuth 自動構築の本番 E2E、MSI 化、Windows コード署名、Android 正式署名・Play 配布は未完了です。CI 成功だけを公開配布可能の根拠にはしません。
+## 開発資料
 
-詳細仕様は `SPEC.md`、構成・API・導入・試験は `docs/` を参照してください。
+- [SPEC.md](SPEC.md): 詳細仕様
+- [docs/](docs/): 構成、API、導入、テスト、署名設定
