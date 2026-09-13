@@ -33,8 +33,11 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/api/v1/pairing/complete" && request.method === "POST") return json(await pairingComplete(env, decodeJson(body)), 201);
   if (url.pathname === "/api/v1/pairing/status" && request.method === "GET") return json(await pairingStatus(env, url.searchParams.get("id") ?? "", url.searchParams.get("code") ?? ""));
 
-  const device = await authenticateDevice(request, env, body);
   const partMatch = url.pathname.match(/^\/api\/v1\/transfers\/([^/]+)\/parts\/(\d+)$/);
+  const bodyHashOverride = request.method === "PUT"
+    ? request.headers.get("X-CB-Part-Sha256") ?? undefined
+    : undefined;
+  const device = await authenticateDevice(request, env, body, undefined, bodyHashOverride);
   if (partMatch && request.method === "PUT") {
     return json(await uploadPart(env, device, partMatch[1], Number(partMatch[2]), body, request.headers.get("X-CB-Part-Sha256") ?? ""));
   }
