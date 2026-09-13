@@ -47,6 +47,7 @@ class UploadWorker(appContext: Context, params: WorkerParameters) : CoroutineWor
             item = db.get(queueId) ?: return@withContext Result.failure()
             if (item.remoteId == null) createRemote(item, api)
             item = db.get(queueId) ?: return@withContext Result.failure()
+            if (item.state != "PAUSED") db.setState(queueId, "UPLOADING")
             uploadParts(item, api)
             item = db.get(queueId) ?: return@withContext Result.failure()
             if (item.state == "CANCELED" || item.state == "CANCEL_PENDING" || item.state == "PAUSED") return@withContext Result.success()
