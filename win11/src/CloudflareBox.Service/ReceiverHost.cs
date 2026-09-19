@@ -7,6 +7,8 @@ namespace CloudflareBox.Service;
 
 internal static class ReceiverHost
 {
+    private const int DefaultPollSeconds = 60;
+    private const int PairingPollSeconds = 5;
     public static async Task<IReadOnlyList<(string Id, string Name)>> ConnectCloudflareAsync(string clientId, string? accountId, string workerBundlePath, string destination, CancellationToken ct)
     {
         Directory.CreateDirectory(AppPaths.Root);
@@ -153,7 +155,7 @@ internal static class ReceiverHost
     {
         while (!ct.IsCancellationRequested)
         {
-            var pollSeconds = 5;
+            var pollSeconds = DefaultPollSeconds;
             try
             {
                 if (!File.Exists(AppPaths.Settings))
@@ -165,7 +167,13 @@ internal static class ReceiverHost
                 }
 
                 var settings = SettingsStore.Load<StoredSettings>(AppPaths.Settings);
-                pollSeconds = Math.Max(2, settings.PollSeconds);
+                var normalizedPollSeconds = Math.Max(DefaultPollSeconds, settings.PollSeconds);
+                if (settings.PollSeconds != normalizedPollSeconds)
+                {
+                    settings.PollSeconds = normalizedPollSeconds;
+                    SettingsStore.Save(AppPaths.Settings, settings);
+                }
+                pollSeconds = normalizedPollSeconds;
                 if (string.IsNullOrWhiteSpace(settings.ApiBase) || string.IsNullOrWhiteSpace(settings.WindowsDeviceId))
                 {
                     var waitingStatus = File.Exists(AppPaths.OAuthToken) && string.IsNullOrWhiteSpace(settings.CloudflareAccountId)
@@ -191,14 +199,14 @@ internal static class ReceiverHost
                         await StartInitialPairingAsync(settings, ct);
                         SettingsStore.Save(AppPaths.Settings, settings);
                         if (once) return;
-                        await Task.Delay(TimeSpan.FromSeconds(pollSeconds), ct);
+                        await Task.Delay(TimeSpan.FromSeconds(PairingPollSeconds), ct);
                         continue;
                     }
                     else
                     {
                         SettingsStore.Save(AppPaths.State, new { status = pairingStatus.Status, code = pendingPair.Code, expiresAt = pendingPair.ExpiresAt });
                         if (once) return;
-                        await Task.Delay(TimeSpan.FromSeconds(pollSeconds), ct);
+                        await Task.Delay(TimeSpan.FromSeconds(PairingPollSeconds), ct);
                         continue;
                     }
                 }
