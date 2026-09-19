@@ -47,7 +47,7 @@ export async function scheduledMaintenance(env: Env): Promise<void> {
 
   await env.DB.prepare("DELETE FROM request_nonces WHERE expires_at < ?").bind(now).run();
   await env.DB.prepare("UPDATE pc_commands SET state='expired' WHERE state='pending' AND expires_at < ?").bind(now).run();
-  if (classAOps) await recordUsage(env, classAOps, 0);
+  await recordUsage(env, classAOps, 0);
 }
 
 export async function dailyMaintenance(env: Env): Promise<void> {
