@@ -287,6 +287,7 @@ internal sealed class CloudflareProvisioner : IDisposable
         "CREATE INDEX IF NOT EXISTS transfers_state_idx ON transfers(state,updated_at)",
         "CREATE INDEX IF NOT EXISTS transfers_android_idx ON transfers(android_device_id,created_at DESC)",
         "CREATE INDEX IF NOT EXISTS transfers_windows_idx ON transfers(windows_device_id,created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS transfers_windows_state_created_idx ON transfers(windows_device_id,state,created_at)",
         "CREATE TABLE IF NOT EXISTS transfer_parts (transfer_id TEXT NOT NULL,part_number INTEGER NOT NULL,etag TEXT NOT NULL,encrypted_sha256 TEXT NOT NULL,size_bytes INTEGER NOT NULL,completed_at INTEGER NOT NULL,PRIMARY KEY(transfer_id,part_number))",
         "CREATE TABLE IF NOT EXISTS pc_commands (id TEXT PRIMARY KEY,windows_device_id TEXT NOT NULL,kind TEXT NOT NULL,payload_json TEXT NOT NULL,state TEXT NOT NULL CHECK(state IN ('pending','acked','expired')),created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,acked_at INTEGER)",
         "CREATE TABLE IF NOT EXISTS usage_daily (day TEXT PRIMARY KEY,peak_stored_bytes INTEGER NOT NULL DEFAULT 0,class_a_ops INTEGER NOT NULL DEFAULT 0,class_b_ops INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL)",
