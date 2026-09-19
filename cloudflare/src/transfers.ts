@@ -88,7 +88,6 @@ export async function uploadPart(env: Env, device: AuthenticatedDevice, id: stri
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare("INSERT INTO transfer_parts(transfer_id,part_number,etag,encrypted_sha256,size_bytes,completed_at) VALUES(?,?,?,?,?,?) ON CONFLICT(transfer_id,part_number) DO UPDATE SET etag=excluded.etag,encrypted_sha256=excluded.encrypted_sha256,size_bytes=excluded.size_bytes,completed_at=excluded.completed_at")
     .bind(id, partNumber, etag, actualHash, body.byteLength, now).run();
-  await recordUsage(env, 1, 0);
   return { transferId: id, partNumber, etag, encryptedSha256: actualHash, sizeBytes: body.byteLength };
 }
 
@@ -108,7 +107,7 @@ export async function completeUpload(env: Env, device: AuthenticatedDevice, id: 
   } else {
     if (!row.multipart_upload_id) throw new HttpError(409, "Multipart upload missing", "multipart_missing");
     await completeMultipart(env, row.object_key, row.multipart_upload_id, parts.results.map((p) => ({ partNumber: Number(p.part_number), etag: p.etag })));
-    await recordUsage(env, 1, 0);
+    await recordUsage(env, row.part_count + 1, 0);
   }
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare("UPDATE transfers SET state='R2_READY',r2_ready_at=?,updated_at=? WHERE id=?").bind(now, now, id).run();
