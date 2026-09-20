@@ -44,12 +44,18 @@ export async function authenticateDevice(request: Request, env: Env, body: Uint8
   const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", publicKey, b64ToBytes(signatureB64), message);
   if (!ok) throw new HttpError(401, "Invalid signature", "auth_signature");
 
-  try {
-    await env.DB.prepare("INSERT INTO request_nonces(device_id, nonce, expires_at) VALUES(?,?,?)")
-      .bind(deviceId, nonce, now + 600).run();
-  } catch {
-    throw new HttpError(409, "Nonce already used", "replay");
+  const isReadOnlyRequest = request.method === "GET" || request.method === "HEAD";
+  if (!isReadOnlyRequest) {
+    try {
+      await env.DB.prepare("INSERT INTO request_nonces(device_id, nonce, expires_at) VALUES(?,?,?)")
+        .bind(deviceId, nonce, now + 600).run();
+    } catch {
+      throw new HttpError(409, "Nonce already used", "replay");
+    }
   }
-  await env.DB.prepare("UPDATE devices SET last_seen_at = ? WHERE id = ?").bind(now, deviceId).run();
+
+  if (device.last_seen_at === null || device.last_seen_at < now - 15 * 60) {
+    await env.DB.prepare("UPDATE devices SET last_seen_at = ? WHERE id = ?").bind(now, deviceId).run();
+  }
   return { id: device.id, kind: device.kind, name: device.name };
 }
