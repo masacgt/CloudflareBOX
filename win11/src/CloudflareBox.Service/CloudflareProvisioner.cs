@@ -206,7 +206,7 @@ internal sealed class CloudflareProvisioner : IDisposable
 
     private async Task ConfigureSchedulesAsync(StoredSettings settings, CancellationToken ct)
     {
-        var schedules = new[] { new { cron = "*/5 * * * *" }, new { cron = "17 3 * * *" } };
+        var schedules = new[] { new { cron = "*/30 * * * *" }, new { cron = "17 3 * * *" } };
         using var response = await SendAsync(HttpMethod.Put, $"accounts/{settings.CloudflareAccountId}/workers/scripts/{Uri.EscapeDataString(settings.WorkerName)}/schedules", schedules, ct);
         await EnsureSuccessAsync(response, "Worker schedule configuration failed.", ct);
     }
