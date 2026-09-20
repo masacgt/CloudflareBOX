@@ -86,8 +86,11 @@ export default {
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil((async () => {
-      await scheduledMaintenance(env);
-      if (controller.cron === "17 3 * * *") await dailyMaintenance(env);
+      if (controller.cron === "17 3 * * *") {
+        await dailyMaintenance(env);
+      } else {
+        await scheduledMaintenance(env);
+      }
     })());
   },
 } satisfies ExportedHandler<Env>;
