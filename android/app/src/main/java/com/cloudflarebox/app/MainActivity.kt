@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
                 val latest = withContext(Dispatchers.IO) { db.list() }
                 refreshCompletedTransfers(latest)
                 queue = withContext(Dispatchers.IO) { db.list() }
-                delay(60_000)
+                delay(300_000)
             }
         }
 
