@@ -54,7 +54,7 @@ export async function authenticateDevice(request: Request, env: Env, body: Uint8
     }
   }
 
-  if (device.last_seen_at === null || device.last_seen_at < now - 15 * 60) {
+  if (device.last_seen_at === null || device.last_seen_at < now - 30 * 60) {
     await env.DB.prepare("UPDATE devices SET last_seen_at = ? WHERE id = ?").bind(now, deviceId).run();
   }
   return { id: device.id, kind: device.kind, name: device.name };
