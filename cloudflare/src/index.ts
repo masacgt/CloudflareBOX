@@ -53,7 +53,7 @@ async function handleFetch(request: Request, env: Env): Promise<Response> {
   if (url.pathname === "/api/v1/status/probe" && request.method === "POST") return json(await createStatusProbe(env, device), 201);
   const probeMatch = url.pathname.match(/^\/api\/v1\/status\/probe\/([^/]+)$/);
   if (probeMatch && request.method === "GET") return json(await probeStatus(env, device, probeMatch[1]));
-  if (url.pathname === "/api/v1/pc/commands/poll" && request.method === "POST") return json(await pollPcCommands(env, device));
+  if (url.pathname === "/api/v1/pc/commands/poll" && request.method === "GET") return json(await pollPcCommands(env, device));
   const ackMatch = url.pathname.match(/^\/api\/v1\/pc\/commands\/([^/]+)\/ack$/);
   if (ackMatch && request.method === "POST") return json(await ackPcCommand(env, device, ackMatch[1]));
 
