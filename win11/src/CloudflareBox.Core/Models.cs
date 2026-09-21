@@ -37,6 +37,6 @@ public sealed class ClientSettings
     public string? DeviceId { get; set; }
     public string DestinationDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "CloudflareBOX");
     public string WorkDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CloudflareBOX", "work");
-    public int PollSeconds { get; set; } = 5;
+    public int PollSeconds { get; set; } = 600;
     public long ReserveFreeBytes { get; set; } = 20L * 1024 * 1024 * 1024;
 }
