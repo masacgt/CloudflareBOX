@@ -7,7 +7,7 @@ internal sealed class StoredSettings
     public string ApiBase { get; set; } = "";
     public string WindowsDeviceId { get; set; } = "";
     public string DestinationDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "CloudflareBOX");
-    public int PollSeconds { get; set; } = 300;
+    public int PollSeconds { get; set; } = 600;
     public string InstallationId { get; set; } = "";
     public string CloudflareAccountId { get; set; } = "";
     public string WorkerName { get; set; } = "";
