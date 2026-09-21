@@ -29,8 +29,6 @@ export async function probeStatus(env: Env, device: AuthenticatedDevice, probeId
 
 export async function pollPcCommands(env: Env, device: AuthenticatedDevice): Promise<object> {
   if (device.kind !== "windows") throw new HttpError(403, "Windows role required", "auth_role");
-  const now = Math.floor(Date.now() / 1000);
-  await env.DB.prepare("UPDATE pc_commands SET state='expired' WHERE state='pending' AND expires_at < ?").bind(now).run();
   const rows = await env.DB.prepare("SELECT id,kind,payload_json,created_at,expires_at FROM pc_commands WHERE windows_device_id=? AND state='pending' ORDER BY created_at LIMIT 20")
     .bind(device.id).all<any>();
   return { commands: rows.results.map((r) => ({ id: r.id, kind: r.kind, payload: JSON.parse(r.payload_json), createdAt: r.created_at, expiresAt: r.expires_at })) };
