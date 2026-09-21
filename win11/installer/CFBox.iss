@@ -33,6 +33,7 @@ Source: "..\..\assets\cfbox-icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{tmp}\CFBoxPayload\install.ps1"" -InstallRoot ""{autopf}\{#InternalInstallDir}"" -InstallerRoot ""{tmp}\CFBoxPayload"""; WorkingDir: "{tmp}\CFBoxPayload"; StatusMsg: "CFBoxをインストールしています..."; Flags: waituntilterminated
+Filename: "{autopf}\{#InternalInstallDir}\tray\CloudflareBox.Tray.exe"; WorkingDir: "{autopf}\{#InternalInstallDir}\tray"; Flags: nowait skipifsilent runasoriginaluser
 
 [Icons]
 Name: "{autoprograms}\CFBox"; Filename: "{autopf}\{#InternalInstallDir}\tray\CloudflareBox.Tray.exe"; WorkingDir: "{autopf}\{#InternalInstallDir}\tray"
