@@ -25,12 +25,12 @@ Androidスマートフォンから、自分のCloudflareアカウントを中継
 
 ## 配布版
 
-最新の配布版はGitHub Releaseの[v0.1.4](https://github.com/masacgt/CloudflareBOX/releases/tag/v0.1.4)です。
+最新の配布版はGitHub Releaseの[v0.1.5](https://github.com/masacgt/CloudflareBOX/releases/tag/v0.1.5)です。
 
-- [Android APK](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Android-v0.1.4.apk)
-- Windows 11は`CFBox-Setup-<version>.exe`を通常配布用とし、ZIPは検証・復旧用として併記します。`v0.1.4`へEXEを追加する場合はRelease workflowを再実行します。
-- [Windows 11 ZIP（検証・復旧用）](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Windows-v0.1.4.zip)
-- [SHA256SUMS.txt](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/SHA256SUMS.txt)
+- [Android APK](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.5/CFBox-Android-v0.1.5.apk)
+- Windows 11は`CFBox-Setup-<version>.exe`を通常配布用とし、ZIPは検証・復旧用として併記します。`v0.1.5`へEXEを追加する場合はRelease workflowを再実行します。
+- [Windows 11 ZIP（検証・復旧用）](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.5/CFBox-Windows-v0.1.5.zip)
+- [SHA256SUMS.txt](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.5/SHA256SUMS.txt)
 
 Android APKはRelease署名済みです。署名鍵は将来の更新に必要なため、配布者が安全に保管します。
 
