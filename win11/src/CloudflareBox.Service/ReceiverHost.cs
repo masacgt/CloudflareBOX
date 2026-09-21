@@ -7,7 +7,7 @@ namespace CloudflareBox.Service;
 
 internal static class ReceiverHost
 {
-    private const int DefaultPollSeconds = 300;
+    private const int DefaultPollSeconds = 600;
     private const int PairingPollSeconds = 5;
     public static async Task<IReadOnlyList<(string Id, string Name)>> ConnectCloudflareAsync(string clientId, string? accountId, string workerBundlePath, string destination, CancellationToken ct)
     {
