@@ -134,7 +134,19 @@ jobs:
             if (-not (Test-Path $path)) { throw "Missing Windows package item: $path" }
           }
           Compress-Archive -Path .\package\* -DestinationPath .\CloudflareBOX-Windows.zip -Force
+      - name: Build CFBox Windows installer
+        shell: pwsh
+        working-directory: win11
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found: $iscc" }
+          & $iscc ".\installer\CFBox.iss" /DMyAppVersion=ci
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path ".\installer-output\CFBox-Setup.exe")) { throw "CFBox-Setup.exe was not created." }
       - uses: actions/upload-artifact@v4
         with:
           name: cloudflarebox-windows
-          path: win11/CloudflareBOX-Windows.zip
+          path: |
+            win11/CloudflareBOX-Windows.zip
+            win11/installer-output/CFBox-Setup.exe

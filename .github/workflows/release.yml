@@ -148,10 +148,37 @@ jobs:
           $required = @('.\package\service\CloudflareBox.Service.exe', '.\package\tray\CloudflareBox.Tray.exe', '.\package\worker\cloudflarebox-worker.mjs', '.\package\install.ps1', '.\package\uninstall.ps1', '.\package\Install-CloudflareBOX.cmd', '.\package\START-HERE.txt', '.\package\oauth-client-id.txt')
           foreach ($path in $required) { if (-not (Test-Path $path)) { throw "Missing Windows package item: $path" } }
           Compress-Archive -Path .\package\* -DestinationPath .\CFBox-Windows-${{ inputs.release_tag }}.zip -Force
+      - name: Build CFBox setup EXE
+        shell: pwsh
+        working-directory: win11
+        run: |
+          choco install innosetup --yes --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup compiler was not found: $iscc" }
+          & $iscc ".\installer\CFBox.iss" "/DMyAppVersion=${{ inputs.release_tag }}"
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed with exit code $LASTEXITCODE" }
+          $source = ".\installer-output\CFBox-Setup.exe"
+          $target = ".\CFBox-Setup-${{ inputs.release_tag }}.exe"
+          if (-not (Test-Path $source)) { throw "CFBox-Setup.exe was not created." }
+          Copy-Item $source $target -Force
+      - name: Sign CFBox setup EXE
+        shell: pwsh
+        working-directory: win11
+        env:
+          PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'cfbox-signing.pfx'
+          if (-not (Test-Path $pfxPath)) { throw "Windows signing certificate was not prepared." }
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse -ErrorAction Stop | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
+          $installer = ".\CFBox-Setup-${{ inputs.release_tag }}.exe"
+          & $signtool sign /fd SHA256 /f $pfxPath /p $env:PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer
+          if ($LASTEXITCODE -ne 0) { throw "Installer signing failed: $installer" }
       - uses: actions/upload-artifact@v4
         with:
           name: cfbox-windows-release
-          path: win11/CFBox-Windows-${{ inputs.release_tag }}.zip
+          path: |
+            win11/CFBox-Setup-${{ inputs.release_tag }}.exe
+            win11/CFBox-Windows-${{ inputs.release_tag }}.zip
 
   release:
     needs: [android, windows]
@@ -168,12 +195,12 @@ jobs:
       - name: Create checksums and release notes
         working-directory: release
         run: |
-          sha256sum CFBox-Android-${{ inputs.release_tag }}.apk CFBox-Windows-${{ inputs.release_tag }}.zip > SHA256SUMS.txt
+          sha256sum CFBox-Android-${{ inputs.release_tag }}.apk CFBox-Setup-${{ inputs.release_tag }}.exe CFBox-Windows-${{ inputs.release_tag }}.zip > SHA256SUMS.txt
           cat > RELEASE_NOTES.md <<'EOF'
           ## CFBox ${{ inputs.release_tag }}
 
           - Android: Release署名済みAPK
-          - Windows 11: PFXコード署名済みZIP
+          - Windows 11: PFXコード署名済みEXE（通常配布） + ZIP（検証・復旧用）
           - SHA-256: `SHA256SUMS.txt`を確認してください
           - CloudflareのR2・D1・Workerは利用者自身のアカウントに構築されます
 
@@ -186,7 +213,7 @@ jobs:
         working-directory: release
         run: |
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$RELEASE_TAG" CFBox-Android-"$RELEASE_TAG".apk CFBox-Setup-"$RELEASE_TAG".exe CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "CFBox $RELEASE_TAG" --notes-file RELEASE_NOTES.md CFBox-Android-"$RELEASE_TAG".apk CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "CFBox $RELEASE_TAG" --notes-file RELEASE_NOTES.md CFBox-Android-"$RELEASE_TAG".apk CFBox-Setup-"$RELEASE_TAG".exe CFBox-Windows-"$RELEASE_TAG".zip SHA256SUMS.txt
           fi

@@ -28,29 +28,31 @@ Androidスマートフォンから、自分のCloudflareアカウントを中継
 最新の配布版はGitHub Releaseの[v0.1.4](https://github.com/masacgt/CloudflareBOX/releases/tag/v0.1.4)です。
 
 - [Android APK](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Android-v0.1.4.apk)
-- [Windows 11 ZIP](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Windows-v0.1.4.zip)
+- Windows 11は`CFBox-Setup-<version>.exe`を通常配布用とし、ZIPは検証・復旧用として併記します。`v0.1.4`へEXEを追加する場合はRelease workflowを再実行します。
+- [Windows 11 ZIP（検証・復旧用）](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/CFBox-Windows-v0.1.4.zip)
 - [SHA256SUMS.txt](https://github.com/masacgt/CloudflareBOX/releases/download/v0.1.4/SHA256SUMS.txt)
 
 Android APKはRelease署名済みです。署名鍵は将来の更新に必要なため、配布者が安全に保管します。
 
-Windows ZIPはテスト用の自己署名コード署名です。そのため、Windows SmartScreenや証明書に関する警告が表示されます。一般配布で警告を減らすには、認証局のコード署名証明書へ切り替える必要があります。
+WindowsのEXEとZIP内バイナリは現在テスト用の自己署名コード署名です。そのため、Windows SmartScreenや証明書に関する警告が表示されます。一般配布で警告を減らすには、認証局のコード署名証明書へ切り替える必要があります。
 
 このリポジトリが非公開の場合、Releaseのダウンロードにはリポジトリへのアクセス権が必要です。
 
 ## 利用者向けセットアップ
 
-Windows配布ZIPは.NETランタイム込みのself-contained形式です。利用者が.NETを別途インストールする必要はありません。
+Windows配布は.NETランタイム込みのself-contained形式です。利用者が.NETを別途インストールする必要はありません。通常は`CFBox-Setup-<version>.exe`を使用します。ZIPは検証・復旧用です。
 
-1. `CFBox-Windows-v0.1.4.zip`を展開します。
-2. `Install-CloudflareBOX.cmd`をダブルクリックします。
-3. Windowsのユーザーアカウント制御が表示されたら「はい」を選びます。
-4. インストール後、タスクトレイのCFBoxを開きます。
-5. 「Cloudflareと連携」を押します。
-6. ブラウザで利用者自身のCloudflareアカウントへログインし、必要な権限を許可します。
-7. Cloudflareアカウントが複数ある場合は、CFBoxで使用するアカウントを選択します。
-8. Cloudflareとの構築が完了したら、Windowsの「Androidを追加」を押します。
-9. Windowsに表示されたQRコードをAndroidアプリで読み取り、ペアリングを承認します。
-10. Androidアプリで「ファイルを選択」から転送します。
+1. `CFBox-Setup-<version>.exe`をダブルクリックします。
+2. Windowsのユーザーアカウント制御が表示されたら「はい」を選びます。
+3. セットアップ完了後、タスクトレイのCFBoxを開きます。
+4. 「Cloudflareと連携」を押します。
+5. ブラウザで利用者自身のCloudflareアカウントへログインし、必要な権限を許可します。
+6. Cloudflareアカウントが複数ある場合は、CFBoxで使用するアカウントを選択します。
+7. Cloudflareとの構築が完了したら、Windowsの「Androidを追加」を押します。
+8. Windowsに表示されたQRコードをAndroidアプリで読み取り、ペアリングを承認します。
+9. Androidアプリで「ファイルを選択」から転送します。
+
+ZIPを使用する場合だけ、`CFBox-Windows-<version>.zip`を展開して`Install-CloudflareBOX.cmd`を実行します。
 
 CloudflareダッシュボードでR2・D1・Workerを手作業で作成する必要はありません。CFBoxがインストール専用のR2・D1・Worker、D1スキーマ、binding、cron、workers.dev設定を自動作成・更新します。
 
@@ -74,7 +76,7 @@ Windowsアプリの「復旧情報を保存」で、暗号化された復旧フ�
 
 利用者自身のCloudflareアカウントが必要です。CFBoxはOAuthで連携し、必要なリソースをそのアカウント内に構築します。
 
-OAuth Clientは配布者が用意し、Windows配布ZIPの`oauth-client-id.txt`に公開Client IDとして同梱します。Client Secretは配布物へ同梱しません。
+OAuth Clientは配布者が用意し、Windows配布物の`oauth-client-id.txt`としてEXEまたはZIP内に公開Client IDを同梱します。Client Secretは配布物へ同梱しません。
 
 必要なOAuth scopeは次のとおりです。
 
@@ -89,9 +91,9 @@ Cloudflare連携を解除すると、そのインストール専用のWorker・D
 
 未完了転送がある場合は削除を拒否します。アカウント共通のworkers.devサブドメインは削除しません。
 
-## 配布ZIPの内容
+## Windows配布物の内容
 
-Windows ZIPには次のファイルが含まれます。
+通常配布用EXEは、次のZIP相当の内容を1本の`CFBox-Setup.exe`にまとめます。ZIP版も検証・復旧用として残します。
 
 - `service/`: Windows常駐サービスとself-contained .NET runtime
 - `tray/`: タスクトレイUIとself-contained .NET runtime
@@ -110,9 +112,9 @@ Windows ZIPには次のファイルが含まれます。
 - Android Release署名APKの作成
 - Windows self-containedアプリのpublish
 - WindowsバイナリのPFX署名
-- Windows ZIPの作成
+- Windows `CFBox-Setup.exe`と検証・復旧用ZIPの作成
 - SHA-256ファイルの作成
-- GitHub ReleaseへのAPK・ZIP・SHA-256の登録
+- GitHub ReleaseへのAPK・EXE・ZIP・SHA-256の登録
 
 Releaseワークフローには次のActions Secretsが必要です。
 
