@@ -8,6 +8,7 @@ namespace CloudflareBox.Service;
 internal static class ReceiverHost
 {
     private const int DefaultPollSeconds = 600;
+    private const int ActivePollSeconds = 60;
     private const int PairingPollSeconds = 5;
     public static async Task<IReadOnlyList<(string Id, string Name)>> ConnectCloudflareAsync(string clientId, string? accountId, string workerBundlePath, string destination, CancellationToken ct)
     {
@@ -239,6 +240,7 @@ internal static class ReceiverHost
                     var length = File.Exists(result.FinalPath) ? new FileInfo(result.FinalPath).Length : 0;
                     history.Record(result.TransferId, result.FinalPath, length, result.Sha256, result.DuplicateSkipped);
                 }
+                if (results.Count > 0) pollSeconds = ActivePollSeconds;
                 SettingsStore.Save(AppPaths.State, new { status = "online", lastCheck = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), completed = results.Count });
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
