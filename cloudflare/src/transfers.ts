@@ -61,7 +61,6 @@ export async function createTransfer(env: Env, device: AuthenticatedDevice, body
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare("INSERT INTO transfers(id,android_device_id,windows_device_id,object_key,size_bytes,encrypted_size_bytes,part_size_bytes,part_count,plaintext_sha256,wrapped_key_b64,metadata_nonce_b64,metadata_cipher_b64,multipart_upload_id,state,priority,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     .bind(id, device.id, windows.id, objectKey, size, encryptedSize, partSize, partCount, body.plaintextSha256.toLowerCase(), body.wrappedKeyB64, body.metadataNonceB64, body.metadataCipherB64, uploadId, "UPLOADING", Number(body?.priority ?? 1), now, now).run();
-  if (uploadId) await recordUsage(env, 1, 0);
   return { id, state: "UPLOADING", sizeBytes: size, encryptedSizeBytes: encryptedSize, partSizeBytes: partSize, partCount, multipart: uploadId !== null, budget };
 }
 
@@ -103,11 +102,11 @@ export async function completeUpload(env: Env, device: AuthenticatedDevice, id: 
   if (parts.results.length !== row.part_count) throw new HttpError(409, "Not all parts are uploaded", "parts_incomplete");
   if (row.size_bytes === 0) {
     if (!(await env.FILES.head(row.object_key))) throw new HttpError(409, "Object is not present", "r2_missing");
-    await recordUsage(env, 0, 1);
+    await recordUsage(env, 1, 1);
   } else {
     if (!row.multipart_upload_id) throw new HttpError(409, "Multipart upload missing", "multipart_missing");
     await completeMultipart(env, row.object_key, row.multipart_upload_id, parts.results.map((p) => ({ partNumber: Number(p.part_number), etag: p.etag })));
-    await recordUsage(env, row.part_count + 1, 0);
+    await recordUsage(env, row.part_count + 2, 0);
   }
   const now = Math.floor(Date.now() / 1000);
   await env.DB.prepare("UPDATE transfers SET state='R2_READY',r2_ready_at=?,updated_at=? WHERE id=?").bind(now, now, id).run();
