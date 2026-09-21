@@ -158,16 +158,18 @@ Set-Acl -Path $dataRoot -AclObject $acl
 New-Service -Name 'CloudflareBOX' -BinaryPathName ('"{0}" --service' -f $serviceExe) -DisplayName 'CloudflareBOX Receiver' -Description 'Receives encrypted CloudflareBOX files through the user owned Cloudflare Worker and R2.' -StartupType Automatic | Out-Null
 sc.exe failure CloudflareBOX reset= 86400 actions= restart/5000/restart/15000/restart/60000 | Out-Null
 
-$taskCommand = '"{0}"' -f $trayExe
-schtasks.exe /Create /TN 'CloudflareBOX-Tray' /SC ONLOGON /TR $taskCommand /RU $InstallUserName /IT /RL LIMITED /F | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "CloudflareBOX タスクトレイの登録に失敗しました: $InstallUserName"
-}
+$taskAction = New-ScheduledTaskAction -Execute $trayExe -WorkingDirectory $trayTarget
+$taskTrigger = New-ScheduledTaskTrigger -AtLogOn -User $InstallUserName
+$taskPrincipal = New-ScheduledTaskPrincipal -UserId $InstallUserName -LogonType Interactive -RunLevel Limited
+$taskSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'CloudflareBOX-Tray' -Action $taskAction -Trigger $taskTrigger -Principal $taskPrincipal -Settings $taskSettings -Force | Out-Null
 
 Start-Service -Name 'CloudflareBOX'
-schtasks.exe /Run /TN 'CloudflareBOX-Tray' | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning 'CloudflareBOX のトレイ起動は次回のユーザーログオン時に行われます。管理者権限のプロセスからは起動しません。'
+try {
+    Start-ScheduledTask -TaskName 'CloudflareBOX-Tray' -ErrorAction Stop
+}
+catch {
+    Write-Warning ('CloudflareBOX のトレイ起動に失敗しました。次回ログオン時に再試行されます: {0}' -f $_.Exception.Message)
 }
 
 Write-Host 'CloudflareBOX をインストールしました。タスクトレイの「Cloudflareと連携」を押し、Cloudflareへログインしてください。R2・D1・Workerは連携後に自動構築されます。'
